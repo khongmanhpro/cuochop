@@ -192,8 +192,19 @@ export function MeetingNotesGenerator() {
       return;
     }
 
-    await navigator.clipboard.writeText(markdown);
-    setCopied(true);
+    try {
+      await copyTextToClipboard(markdown);
+      setCopied(true);
+      setExportError(null);
+    } catch (error) {
+      setCopied(false);
+      setExportError({
+        message: getErrorMessage(
+          error,
+          "Không thể copy Markdown. Vui lòng chọn nội dung trong Markdown preview để copy thủ công.",
+        ),
+      });
+    }
   }
 
   function handleDownloadMarkdown() {
@@ -205,12 +216,7 @@ export function MeetingNotesGenerator() {
     const blob = new Blob([String(exportResult.content)], {
       type: exportResult.mimeType,
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = exportResult.filename;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, exportResult.filename);
   }
 
   async function handleDownloadDocx() {
@@ -245,12 +251,7 @@ export function MeetingNotesGenerator() {
       const filename = getFilenameFromDisposition(
         response.headers.get("Content-Disposition"),
       );
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      link.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, filename);
     } catch (error) {
       setExportError({
         message: getErrorMessage(
@@ -821,6 +822,50 @@ function getClientFileErrorCode(file: File) {
 function getFilenameFromDisposition(header: string | null) {
   const match = header?.match(/filename="([^"]+)"/);
   return match?.[1] || "meeting-notes.docx";
+}
+
+async function copyTextToClipboard(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Some in-app browsers deny Clipboard API even on localhost.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    const copied = document.execCommand("copy");
+    if (!copied) {
+      throw new Error("Copy command was rejected.");
+    }
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.rel = "noopener";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function formatBytes(bytes: number) {

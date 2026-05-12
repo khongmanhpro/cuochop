@@ -47,6 +47,16 @@ Mở [http://localhost:3000](http://localhost:3000).
 pnpm build
 ```
 
+## Run With Docker
+
+Build and start the app in a container with your local `.env.local`:
+
+```bash
+docker compose up --build
+```
+
+The app will be available at [http://localhost:3000](http://localhost:3000). Uploads are persisted in `tmp/uploads` on the host so they survive container restarts.
+
 ## Test End-to-End
 
 1. Thêm `GEMINI_API_KEY` vào `.env.local`.

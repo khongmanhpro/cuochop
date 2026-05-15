@@ -10,7 +10,7 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-const PROTECTED_PATHS = ["/app", "/history"];
+const PROTECTED_PATHS = ["/app", "/actions", "/history"];
 const AUTH_PATHS = ["/auth/login", "/auth/signup"];
 
 export async function middleware(request: NextRequest) {
@@ -52,5 +52,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/history/:path*", "/auth/:path*"],
+  matcher: ["/app/:path*", "/actions/:path*", "/history/:path*", "/auth/:path*"],
 };

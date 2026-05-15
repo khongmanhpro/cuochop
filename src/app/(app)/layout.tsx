@@ -47,6 +47,12 @@ export default async function AppLayout({
                 New Meeting
               </Link>
               <Link
+                href="/actions"
+                className="text-sm text-slate-600 hover:text-slate-900"
+              >
+                Actions
+              </Link>
+              <Link
                 href="/history"
                 className="text-sm text-slate-600 hover:text-slate-900"
               >

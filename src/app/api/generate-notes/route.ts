@@ -9,6 +9,10 @@ import { cleanupOldUploadsSafely } from "@/lib/upload-server";
 import { getSession } from "@/lib/session";
 import { canGenerate } from "@/lib/plans";
 import { prisma } from "@/lib/db";
+import {
+  buildActionItemCreatePayloads,
+  buildDecisionCreatePayloads,
+} from "@/lib/action-items";
 
 export const runtime = "nodejs";
 
@@ -77,7 +81,7 @@ export async function POST(request: Request) {
     });
 
     // Save to history
-    await prisma.meetingNote.create({
+    const meetingNote = await prisma.meetingNote.create({
       data: {
         userId: user.id,
         title: notes.title || originalName || "Meeting Notes",
@@ -86,6 +90,29 @@ export async function POST(request: Request) {
         markdown,
       },
     });
+
+    try {
+      const actionItems = buildActionItemCreatePayloads({
+        notes,
+        meetingNoteId: meetingNote.id,
+        userId: user.id,
+      });
+      const decisions = buildDecisionCreatePayloads({
+        notes,
+        meetingNoteId: meetingNote.id,
+        userId: user.id,
+      });
+
+      if (actionItems.length > 0) {
+        await prisma.actionItem.createMany({ data: actionItems });
+      }
+
+      if (decisions.length > 0) {
+        await prisma.decision.createMany({ data: decisions });
+      }
+    } catch (error) {
+      console.warn("[action-tracker] failed to persist derived records", error);
+    }
 
     await cleanupOldUploadsSafely({ route: "/api/generate-notes" });
 

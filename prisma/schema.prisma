@@ -21,6 +21,8 @@ model User {
   createdAt        DateTime      @default(now())
   sessions         Session[]
   meetingNotes     MeetingNote[]
+  actionItems      ActionItem[]
+  decisions        Decision[]
 }
 
 model Session {
@@ -39,4 +41,32 @@ model MeetingNote {
   markdown  String
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionItems ActionItem[]
+  decisions   Decision[]
+}
+
+model ActionItem {
+  id            String      @id @default(cuid())
+  meetingNoteId String
+  userId        String
+  task          String
+  owner         String
+  deadline      String
+  priority      String
+  status        String      @default("todo")
+  notes         String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  meetingNote   MeetingNote @relation(fields: [meetingNoteId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Decision {
+  id            String      @id @default(cuid())
+  meetingNoteId String
+  userId        String
+  content       String
+  createdAt     DateTime    @default(now())
+  meetingNote   MeetingNote @relation(fields: [meetingNoteId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

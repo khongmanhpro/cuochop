@@ -7,6 +7,7 @@ import {
   modelOptions,
 } from "@/lib/meeting-notes-mock";
 import { exportMeetingNotesMarkdown } from "@/lib/exporters/markdown-exporter";
+import { formatFollowUpBrief } from "@/lib/follow-up-brief";
 import type {
   VietnameseMeetingNotes,
   VietnameseMeetingTranscript,
@@ -57,6 +58,7 @@ export function MeetingNotesGenerator() {
   const [markdown, setMarkdown] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedFollowUp, setCopiedFollowUp] = useState(false);
   const [appError, setAppError] = useState<ErrorState | null>(null);
   const [notesError, setNotesError] = useState<ErrorState | null>(null);
   const [exportError, setExportError] = useState<ErrorState | null>(null);
@@ -71,6 +73,7 @@ export function MeetingNotesGenerator() {
   const showResults = stage === "done" && uploadResult && transcript;
   const canExportMarkdown = Boolean(markdown);
   const canExportDocx = Boolean(notes) && !isExportingDocx;
+  const followUpBrief = notes ? formatFollowUpBrief(notes) : "";
 
   function chooseFile(file: File | undefined) {
     if (!file) {
@@ -110,6 +113,7 @@ export function MeetingNotesGenerator() {
     setExportError(null);
     setIsExportingDocx(false);
     setCopied(false);
+    setCopiedFollowUp(false);
   }
 
   async function handleGenerate() {
@@ -128,6 +132,7 @@ export function MeetingNotesGenerator() {
 
     try {
       setCopied(false);
+      setCopiedFollowUp(false);
       setAppError(null);
       setUploadResult(null);
       setTranscript(null);
@@ -203,6 +208,26 @@ export function MeetingNotesGenerator() {
         message: getErrorMessage(
           error,
           "Không thể copy Markdown. Vui lòng chọn nội dung trong Markdown preview để copy thủ công.",
+        ),
+      });
+    }
+  }
+
+  async function handleCopyFollowUp() {
+    if (!followUpBrief) {
+      return;
+    }
+
+    try {
+      await copyTextToClipboard(followUpBrief);
+      setCopiedFollowUp(true);
+      setExportError(null);
+    } catch (error) {
+      setCopiedFollowUp(false);
+      setExportError({
+        message: getErrorMessage(
+          error,
+          "Không thể copy Follow-up Brief. Vui lòng chọn nội dung để copy thủ công.",
         ),
       });
     }
@@ -483,8 +508,8 @@ export function MeetingNotesGenerator() {
                       : "Transcript is available. Notes generation did not complete."}
                   </p>
                 </div>
-                <div className="w-full max-w-xl rounded-lg border border-slate-200 bg-slate-50 p-3 xl:w-auto">
-                  <div className="grid gap-2 sm:grid-cols-3">
+                <div className="w-full max-w-2xl rounded-lg border border-slate-200 bg-slate-50 p-3 xl:w-auto">
+                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                   <button
                     type="button"
                     className="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 transition enabled:hover:border-blue-300 enabled:hover:text-blue-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
@@ -508,6 +533,14 @@ export function MeetingNotesGenerator() {
                     onClick={handleDownloadDocx}
                   >
                     {isExportingDocx ? "Exporting..." : "Download .docx"}
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex min-h-10 items-center justify-center rounded-md bg-blue-700 px-3 text-sm font-semibold text-white transition enabled:hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+                    disabled={!followUpBrief}
+                    onClick={handleCopyFollowUp}
+                  >
+                    {copiedFollowUp ? "Follow-up copied" : "Copy Follow-up"}
                   </button>
                   </div>
                 </div>
@@ -640,6 +673,28 @@ export function MeetingNotesGenerator() {
                         </tbody>
                       </table>
                     </div>
+                  </article>
+                  <article className="p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          Follow-up Brief
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Copy nhanh để gửi team sau cuộc họp. Pro lưu và theo
+                          dõi các action items này trong Action Board.
+                        </p>
+                      </div>
+                      <a
+                        href="/actions"
+                        className="inline-flex h-10 items-center justify-center rounded-md border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                      >
+                        Xem Action Board
+                      </a>
+                    </div>
+                    <pre className="mt-4 max-h-72 overflow-auto rounded-md bg-blue-950 p-4 text-xs leading-6 text-blue-50">
+                      {followUpBrief}
+                    </pre>
                   </article>
                   <article className="p-5">
                     <h3 className="text-lg font-semibold">

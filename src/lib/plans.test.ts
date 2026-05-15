@@ -63,6 +63,10 @@ describe("canExportDocx", () => {
     const user = makeUser({ plan: "pro", planExpiresAt: new Date(Date.now() - 1000) });
     expect(canExportDocx(user)).toBe(false);
   });
+
+  test("pro user with null planExpiresAt (lifetime) can export docx", () => {
+    expect(canExportDocx(makeUser({ plan: "pro", planExpiresAt: null }))).toBe(true);
+  });
 });
 
 describe("canViewHistory", () => {
@@ -72,5 +76,9 @@ describe("canViewHistory", () => {
 
   test("pro user can view history", () => {
     expect(canViewHistory(makeUser({ plan: "pro" }))).toBe(true);
+  });
+
+  test("pro user with null planExpiresAt (lifetime) can view history", () => {
+    expect(canViewHistory(makeUser({ plan: "pro", planExpiresAt: null }))).toBe(true);
   });
 });

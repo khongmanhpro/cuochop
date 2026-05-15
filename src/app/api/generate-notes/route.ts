@@ -6,11 +6,27 @@ import { formatMeetingNotesMarkdown } from "@/lib/formatMeetingNotesMarkdown";
 import { getGeminiModelId } from "@/lib/models";
 import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
 import { cleanupOldUploadsSafely } from "@/lib/upload-server";
+import { getSession } from "@/lib/session";
+import { canGenerate } from "@/lib/plans";
+import { prisma } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const user = await getSession();
+    if (!user) {
+      throw appApiError("UNAUTHENTICATED", "Bạn cần đăng nhập để sử dụng tính năng này.", 401);
+    }
+
+    if (!canGenerate(user)) {
+      throw appApiError(
+        "PLAN_LIMIT_EXCEEDED",
+        `Bạn đã dùng hết ${user.usageThisMonth} lần miễn phí tháng này. Nâng cấp Pro để tiếp tục.`,
+        423,
+      );
+    }
+
     const body: unknown = await request.json();
     const payload = isRecord(body) ? body : {};
     const transcript = payload.transcript;
@@ -52,12 +68,31 @@ export async function POST(request: Request) {
       originalName,
     });
 
+    const markdown = formatMeetingNotesMarkdown(notes);
+
+    // Increment usage counter
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { usageThisMonth: { increment: 1 } },
+    });
+
+    // Save to history
+    await prisma.meetingNote.create({
+      data: {
+        userId: user.id,
+        title: notes.title || originalName || "Meeting Notes",
+        audioName: originalName || "unknown",
+        notesJson: JSON.stringify(notes),
+        markdown,
+      },
+    });
+
     await cleanupOldUploadsSafely({ route: "/api/generate-notes" });
 
     return Response.json({
       ok: true,
       notes,
-      markdown: formatMeetingNotesMarkdown(notes),
+      markdown,
     });
   } catch (error) {
     return createApiErrorResponse(error, {

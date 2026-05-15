@@ -4,6 +4,8 @@ import {
 } from "@/lib/exporters/meeting-notes-exporter";
 import type { VietnameseMeetingNotes } from "@/lib/gemini";
 import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
+import { getSession } from "@/lib/session";
+import { canExportDocx } from "@/lib/plans";
 
 export const runtime = "nodejs";
 
@@ -11,6 +13,11 @@ export async function POST(request: Request) {
   let format: string | undefined;
 
   try {
+    const user = await getSession();
+    if (!user) {
+      throw appApiError("UNAUTHENTICATED", "Bạn cần đăng nhập để sử dụng tính năng này.", 401);
+    }
+
     const body: unknown = await request.json();
     const payload = isRecord(body) ? body : {};
     format = normalizeString(payload.format) || undefined;
@@ -22,6 +29,14 @@ export async function POST(request: Request) {
         "Định dạng export không hợp lệ.",
         400,
         `Invalid export format: ${String(format)}`,
+      );
+    }
+
+    if (format === "docx" && !canExportDocx(user)) {
+      throw appApiError(
+        "PLAN_FEATURE_UNAVAILABLE",
+        "Download DOCX chỉ có trên plan Pro. Nâng cấp để sử dụng tính năng này.",
+        403,
       );
     }
 

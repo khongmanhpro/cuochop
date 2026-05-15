@@ -2,6 +2,7 @@
   "name": "cuochop",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.32.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,8 +13,10 @@
   "dependencies": {
     "@google/genai": "^2.0.1",
     "@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.10.0",
     "docx": "^9.6.1",
     "jose": "^6.2.3",
     "next": "16.2.6",
@@ -33,5 +36,12 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.6"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "better-sqlite3",
+      "prisma"
+    ]
   }
 }

@@ -61,6 +61,7 @@ export function MeetingNotesGenerator() {
   const [notesError, setNotesError] = useState<ErrorState | null>(null);
   const [exportError, setExportError] = useState<ErrorState | null>(null);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
+  const [showDocxUpsell, setShowDocxUpsell] = useState(false);
 
   const isProcessing =
     stage === "uploading" ||
@@ -253,12 +254,17 @@ export function MeetingNotesGenerator() {
       );
       downloadBlob(blob, filename);
     } catch (error) {
+      const code = getErrorCode(error);
+      if (code === "PLAN_FEATURE_UNAVAILABLE") {
+        setShowDocxUpsell(true);
+        return;
+      }
       setExportError({
         message: getErrorMessage(
           error,
           "Không thể xuất DOCX. Vui lòng thử lại.",
         ),
-        code: getErrorCode(error),
+        code,
       });
     } finally {
       setIsExportingDocx(false);
@@ -725,6 +731,32 @@ export function MeetingNotesGenerator() {
           )}
         </div>
       </section>
+      {showDocxUpsell ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-xl">
+            <h2 className="text-xl font-semibold text-slate-950">Download DOCX</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Tính năng này chỉ có trên plan <strong>Pro</strong>. Nâng cấp để tải .docx và
+              lưu lịch sử cuộc họp không giới hạn.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <a
+                href="/pricing"
+                className="flex-1 inline-flex h-10 items-center justify-center rounded-md bg-blue-700 text-sm font-semibold text-white hover:bg-blue-800"
+              >
+                Xem plans Pro
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowDocxUpsell(false)}
+                className="flex-1 h-10 rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

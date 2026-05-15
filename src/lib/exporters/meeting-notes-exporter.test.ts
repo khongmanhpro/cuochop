@@ -60,10 +60,12 @@ describe("meeting notes exporters", () => {
     expect(result.content).toContain("# Meeting Notes");
   });
 
-  test("dispatcher exports markdown", () => {
-    const result = exportMeetingNotes(notes, "markdown", {
-      now: new Date("2026-05-12T09:30:00+07:00"),
-    });
+  test("dispatcher exports markdown", async () => {
+    const result = await Promise.resolve(
+      exportMeetingNotes(notes, "markdown", {
+        now: new Date("2026-05-12T09:30:00+07:00"),
+      }),
+    );
 
     expect(result.filename.endsWith(".md")).toBe(true);
   });

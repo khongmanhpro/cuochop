@@ -13,7 +13,8 @@ import { getErrorMessage, readApiError } from "@/lib/api-client";
 export type ActionBoardItem = {
   id: string;
   task: string;
-  owner: string;
+  ownerId: string | null;
+  ownerName: string;
   deadline: string;
   priority: string;
   status: string;
@@ -24,12 +25,28 @@ export type ActionBoardItem = {
   createdBy: string;
 };
 
+export type AssignableMember = {
+  id: string;
+  label: string;
+  email: string;
+};
+
 export type DecisionLogItem = {
   id: string;
   content: string;
   createdAt: string;
   meetingTitle: string;
   createdBy: string;
+};
+
+export type DecisionConflictItem = {
+  id: string;
+  decisionId: string;
+  conflictingId: string;
+  decisionContent: string;
+  conflictingContent: string;
+  similarity: number;
+  reason: string;
 };
 
 type Filters = {
@@ -55,10 +72,16 @@ const initialFilters: Filters = {
 export function ActionsBoard({
   initialItems,
   decisions,
+  assignableMembers,
+  conflicts = [],
+  isTeamContext = false,
   initialDeadlineFilter = false,
 }: {
   initialItems: ActionBoardItem[];
   decisions: DecisionLogItem[];
+  assignableMembers: AssignableMember[];
+  conflicts?: DecisionConflictItem[];
+  isTeamContext?: boolean;
   initialDeadlineFilter?: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
@@ -75,7 +98,7 @@ export function ActionsBoard({
       computeManagerDigest(
         items.map((item) => ({
           status: item.status,
-          owner: item.owner,
+          ownerId: item.ownerId,
           deadline: item.deadline,
         })),
       ),
@@ -89,11 +112,11 @@ export function ActionsBoard({
         if (filters.priority !== "all" && item.priority !== filters.priority) return false;
         if (
           filters.owner.trim() &&
-          !item.owner.toLowerCase().includes(filters.owner.trim().toLowerCase())
+          !item.ownerName.toLowerCase().includes(filters.owner.trim().toLowerCase())
         ) {
           return false;
         }
-        if (filters.noOwner && !isMissing(item.owner)) return false;
+        if (filters.noOwner && item.ownerId) return false;
         if (filters.blocked && item.status !== "blocked") return false;
         if (filters.overdue && !isClearlyOverdue(item.deadline)) return false;
         if (filters.deadlineWindow && !isDueSoonOrOverdue(item.deadline)) return false;
@@ -152,7 +175,10 @@ export function ActionsBoard({
   return (
     <div className="space-y-6">
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <DigestCard label="Open actions" value={String(digest.open)} />
+        <DigestCard
+          label={isTeamContext ? "Team open actions" : "Open actions"}
+          value={String(digest.open)}
+        />
         <DigestCard label="Blocked" value={String(digest.blocked)} tone="red" />
         <DigestCard
           label="Chưa có owner"
@@ -251,7 +277,9 @@ export function ActionsBoard({
                 <th className="px-4 py-3 font-semibold">Deadline</th>
                 <th className="px-4 py-3 font-semibold">Priority</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 font-semibold">Created by</th>
+                {isTeamContext ? (
+                  <th className="px-4 py-3 font-semibold">Created by</th>
+                ) : null}
                 <th className="px-4 py-3 font-semibold">Source</th>
                 <th className="px-4 py-3 font-semibold">Actions</th>
               </tr>
@@ -263,6 +291,8 @@ export function ActionsBoard({
                   item={item}
                   isEditing={editingId === item.id}
                   isPending={isPending}
+                  showCreatedBy={isTeamContext}
+                  assignableMembers={assignableMembers}
                   onEdit={() => setEditingId(item.id)}
                   onCancel={() => setEditingId(null)}
                   onPatch={(payload) => patchActionItem(item.id, payload)}
@@ -285,6 +315,7 @@ export function ActionsBoard({
             decisions.map((decision) => (
               <div
                 key={decision.id}
+                data-search-id={decision.id}
                 className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
               >
                 <p className="text-sm text-slate-800">{decision.content}</p>
@@ -299,6 +330,37 @@ export function ActionsBoard({
           )}
         </div>
       </section>
+
+      {conflicts.length > 0 && (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+          <h2 className="font-semibold text-amber-900">
+            ⚠️ Potential Conflicts ({conflicts.length})
+          </h2>
+          <div className="mt-4 space-y-3">
+            {conflicts.map((conflict) => (
+              <div
+                key={conflict.id}
+                className="rounded-md border border-amber-200 bg-white px-3 py-2"
+              >
+                <p className="text-xs font-medium text-amber-700">{conflict.reason}</p>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded bg-slate-50 p-2">
+                    <span className="font-semibold text-slate-600">A:</span>{" "}
+                    <span className="text-slate-800">{conflict.decisionContent}</span>
+                  </div>
+                  <div className="rounded bg-slate-50 p-2">
+                    <span className="font-semibold text-slate-600">B:</span>{" "}
+                    <span className="text-slate-800">{conflict.conflictingContent}</span>
+                  </div>
+                </div>
+                <p className="mt-1 text-[10px] text-slate-400">
+                  Similarity: {Math.round(conflict.similarity * 100)}%
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -307,6 +369,8 @@ function ActionRow({
   item,
   isEditing,
   isPending,
+  showCreatedBy,
+  assignableMembers,
   onEdit,
   onCancel,
   onPatch,
@@ -314,12 +378,14 @@ function ActionRow({
   item: ActionBoardItem;
   isEditing: boolean;
   isPending: boolean;
+  showCreatedBy: boolean;
+  assignableMembers: AssignableMember[];
   onEdit: () => void;
   onCancel: () => void;
   onPatch: (payload: Record<string, string>) => void;
 }) {
   const [draft, setDraft] = useState({
-    owner: item.owner,
+    ownerId: item.ownerId ?? "",
     deadline: item.deadline,
     priority: item.priority,
     status: item.status,
@@ -331,10 +397,10 @@ function ActionRow({
       <tr className="border-t border-slate-100 bg-blue-50/40 align-top">
         <td className="px-4 py-3 font-medium text-slate-950">{item.task}</td>
         <td className="px-4 py-3">
-          <input
-            className="h-9 w-full rounded-md border border-slate-300 px-2"
-            value={draft.owner}
-            onChange={(event) => setDraft({ ...draft, owner: event.target.value })}
+          <OwnerSelect
+            value={draft.ownerId}
+            members={assignableMembers}
+            onChange={(ownerId) => setDraft({ ...draft, ownerId })}
           />
         </td>
         <td className="px-4 py-3">
@@ -371,7 +437,9 @@ function ActionRow({
             onChange={(status) => setDraft({ ...draft, status })}
           />
         </td>
-        <td className="px-4 py-3 text-xs text-slate-500">{item.createdBy}</td>
+        {showCreatedBy ? (
+          <td className="px-4 py-3 text-xs text-slate-500">{item.createdBy}</td>
+        ) : null}
         <td className="px-4 py-3 text-xs text-slate-500">{item.meetingTitle}</td>
         <td className="px-4 py-3">
           <div className="flex gap-2">
@@ -379,7 +447,12 @@ function ActionRow({
               type="button"
               className="rounded-md bg-blue-700 px-3 py-2 text-xs font-semibold text-white disabled:bg-slate-300"
               disabled={isPending}
-              onClick={() => onPatch(draft)}
+                  onClick={() =>
+                    onPatch({
+                      ...draft,
+                      ownerId: draft.ownerId,
+                    })
+                  }
             >
               Save
             </button>
@@ -397,14 +470,17 @@ function ActionRow({
   }
 
   return (
-    <tr className="border-t border-slate-100 align-top">
+    <tr
+      data-search-id={item.id}
+      className="border-t border-slate-100 align-top"
+    >
       <td className="px-4 py-3">
         <p className="font-medium text-slate-950">{item.task}</p>
         {item.notes && item.notes !== "Chưa xác định" ? (
           <p className="mt-1 text-xs text-slate-500">{item.notes}</p>
         ) : null}
       </td>
-      <td className="px-4 py-3">{item.owner}</td>
+      <td className="px-4 py-3">{item.ownerName}</td>
       <td className="px-4 py-3">{item.deadline}</td>
       <td className="px-4 py-3">
         <span className="rounded bg-slate-100 px-2 py-1 text-xs font-semibold">
@@ -418,7 +494,9 @@ function ActionRow({
           onChange={(status) => onPatch({ status })}
         />
       </td>
-      <td className="px-4 py-3 text-xs text-slate-600">{item.createdBy}</td>
+      {showCreatedBy ? (
+        <td className="px-4 py-3 text-xs text-slate-600">{item.createdBy}</td>
+      ) : null}
       <td className="px-4 py-3 text-xs text-slate-500">
         {item.meetingTitle}
         <br />
@@ -434,6 +512,31 @@ function ActionRow({
         </button>
       </td>
     </tr>
+  );
+}
+
+function OwnerSelect({
+  value,
+  members,
+  onChange,
+}: {
+  value: string;
+  members: AssignableMember[];
+  onChange: (ownerId: string) => void;
+}) {
+  return (
+    <select
+      className="h-9 w-full rounded-md border border-slate-300 bg-white px-2"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      <option value="">Unassigned</option>
+      {members.map((member) => (
+        <option key={member.id} value={member.id}>
+          @{member.label}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -506,10 +609,6 @@ function FilterToggle({
       {label}
     </label>
   );
-}
-
-function isMissing(value: string) {
-  return value.trim().length === 0 || value.trim() === "Chưa xác định";
 }
 
 function isClearlyOverdue(deadline: string) {

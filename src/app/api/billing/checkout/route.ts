@@ -6,7 +6,7 @@ import {
   getCheckoutVariantId,
   normalizeCheckoutTier,
 } from "@/lib/billing";
-import { getActiveOrganization } from "@/lib/organizations";
+import { getUserOrganization } from "@/lib/organizations";
 
 export const runtime = "nodejs";
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       typeof payload.organizationId === "string" ? payload.organizationId : null;
 
     if (organizationId) {
-      const activeOrganization = await getActiveOrganization(user.id);
+      const activeOrganization = await getUserOrganization(user.id);
       if (activeOrganization?.id !== organizationId) {
         throw appApiError(
           "FORBIDDEN",

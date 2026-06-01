@@ -6,7 +6,7 @@ import type { VietnameseMeetingNotes } from "@/lib/gemini";
 import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
 import { getSession } from "@/lib/session";
 import { canExportDocx } from "@/lib/plans";
-import { getActiveOrganization } from "@/lib/organizations";
+import { getUserOrganization } from "@/lib/organizations";
 
 export const runtime = "nodejs";
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const activeOrganization = await getActiveOrganization(user.id);
+    const activeOrganization = await getUserOrganization(user.id);
 
     if (format === "docx" && !canExportDocx(user, activeOrganization)) {
       throw appApiError(

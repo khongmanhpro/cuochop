@@ -2,16 +2,22 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { canViewHistory } from "@/lib/plans";
-import { getActiveOrganization } from "@/lib/organizations";
+import { getUserOrganization } from "@/lib/organizations";
 import { prisma } from "@/lib/db";
+import { SearchScrollTarget } from "@/components/search-scroll-target";
 import type { MeetingNoteModel } from "@/generated/prisma/models";
 import type { VietnameseMeetingNotes } from "@/lib/gemini";
 
-export default async function HistoryPage() {
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ highlight?: string; meeting?: string; section?: string }>;
+}) {
   const user = await getSession();
   if (!user) redirect("/auth/login");
+  const params = searchParams ? await searchParams : {};
 
-  const activeOrganization = await getActiveOrganization(user.id);
+  const activeOrganization = await getUserOrganization(user.id);
 
   if (!canViewHistory(user, activeOrganization)) {
     return (
@@ -34,13 +40,16 @@ export default async function HistoryPage() {
   }
 
   const notes = await prisma.meetingNote.findMany({
-    where: { userId: user.id },
+    where: activeOrganization
+      ? { organizationId: activeOrganization.id }
+      : { userId: user.id },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+      <SearchScrollTarget highlightId={params.highlight || params.meeting} />
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-slate-950">Lịch sử cuộc họp</h1>
         <p className="mt-1 text-sm text-slate-600">
@@ -65,6 +74,7 @@ export default async function HistoryPage() {
             return (
               <div
                 key={note.id}
+                data-search-id={note.id}
                 className="rounded-lg border border-slate-200 bg-white p-5"
               >
                 <div className="mb-3">

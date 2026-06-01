@@ -8,12 +8,18 @@ import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
 import { cleanupOldUploadsSafely } from "@/lib/upload-server";
 import { getSession } from "@/lib/session";
 import { canGenerate } from "@/lib/plans";
-import { getActiveOrganization } from "@/lib/organizations";
+import { getRequestIp, logAudit } from "@/lib/audit";
+import { getUserOrganization } from "@/lib/organizations";
 import { prisma } from "@/lib/db";
 import {
   buildActionItemCreatePayloads,
   buildDecisionCreatePayloads,
 } from "@/lib/action-items";
+import { detectConflicts, persistConflicts } from "@/lib/contradiction-detector";
+import {
+  buildFollowUpBriefBlocks,
+  postSlackMessage,
+} from "@/lib/slack";
 
 export const runtime = "nodejs";
 
@@ -24,7 +30,7 @@ export async function POST(request: Request) {
       throw appApiError("UNAUTHENTICATED", "Bạn cần đăng nhập để sử dụng tính năng này.", 401);
     }
 
-    const activeOrganization = await getActiveOrganization(user.id);
+    const activeOrganization = await getUserOrganization(user.id);
 
     if (!canGenerate(user, activeOrganization)) {
       throw appApiError(
@@ -94,13 +100,38 @@ export async function POST(request: Request) {
         markdown,
       },
     });
+    const ipAddress = getRequestIp(request);
+
+    await logAudit({
+      organizationId: activeOrganization?.id,
+      userId: user.id,
+      action: "create",
+      entityType: "MeetingNote",
+      entityId: meetingNote.id,
+      after: {
+        id: meetingNote.id,
+        title: meetingNote.title,
+        audioName: meetingNote.audioName,
+      },
+      ipAddress,
+    });
 
     try {
+      const orgMembers = activeOrganization
+        ? await prisma.membership.findMany({
+            where: { organizationId: activeOrganization.id },
+            select: { user: { select: { id: true, name: true, email: true } } },
+          }).then((memberships) =>
+            memberships.map((m) => ({ id: m.user.id, name: m.user.name, email: m.user.email })),
+          )
+        : undefined;
+
       const actionItems = buildActionItemCreatePayloads({
         notes,
         meetingNoteId: meetingNote.id,
         userId: user.id,
         organizationId: activeOrganization?.id,
+        orgMembers,
       });
       const decisions = buildDecisionCreatePayloads({
         notes,
@@ -110,14 +141,97 @@ export async function POST(request: Request) {
       });
 
       if (actionItems.length > 0) {
-        await prisma.actionItem.createMany({ data: actionItems });
+        for (const payload of actionItems) {
+          const actionItem = await prisma.actionItem.create({ data: payload });
+          await logAudit({
+            organizationId: actionItem.organizationId,
+            userId: user.id,
+            action: "create",
+            entityType: "ActionItem",
+            entityId: actionItem.id,
+            after: {
+              id: actionItem.id,
+              task: actionItem.task,
+              ownerId: actionItem.ownerId,
+              deadline: actionItem.deadline,
+              priority: actionItem.priority,
+              status: actionItem.status,
+            },
+            ipAddress,
+          });
+        }
       }
 
       if (decisions.length > 0) {
-        await prisma.decision.createMany({ data: decisions });
+        for (const payload of decisions) {
+          const decision = await prisma.decision.create({ data: payload });
+          await logAudit({
+            organizationId: decision.organizationId,
+            userId: user.id,
+            action: "create",
+            entityType: "Decision",
+            entityId: decision.id,
+            after: {
+              id: decision.id,
+              content: decision.content,
+            },
+            ipAddress,
+          });
+        }
+
+        // Detect potential conflicts with existing decisions
+        const createdDecisions = await prisma.decision.findMany({
+          where: { meetingNoteId: meetingNote.id },
+          select: { id: true, content: true },
+        });
+        for (const decision of createdDecisions) {
+          try {
+            const conflicts = await detectConflicts(
+              decision.id,
+              decision.content,
+              activeOrganization?.id,
+              user.id,
+            );
+            await persistConflicts(decision.id, conflicts);
+          } catch (conflictErr) {
+            console.warn("[conflict-detector] failed for decision", decision.id, conflictErr);
+          }
+        }
       }
     } catch (error) {
       console.warn("[action-tracker] failed to persist derived records", error);
+    }
+
+    if (activeOrganization) {
+      try {
+        const slackSettings = await prisma.organization.findUnique({
+          where: { id: activeOrganization.id },
+          select: {
+            slackAutoPostEnabled: true,
+            slackIntegration: true,
+          },
+        });
+        const integration = slackSettings?.slackIntegration;
+
+        if (
+          slackSettings?.slackAutoPostEnabled &&
+          integration?.accessToken &&
+          integration.channelId
+        ) {
+          const appUrl =
+            process.env.NEXT_PUBLIC_BASE_URL ?? new URL(request.url).origin;
+          const meetingUrl = `${appUrl}/history?meeting=${meetingNote.id}&highlight=${meetingNote.id}&section=note`;
+
+          await postSlackMessage({
+            encryptedAccessToken: integration.accessToken,
+            channelId: integration.channelId,
+            text: `Follow-up sau cuộc họp: ${notes.title || "Meeting Notes"}`,
+            blocks: buildFollowUpBriefBlocks(notes, meetingUrl),
+          });
+        }
+      } catch (slackError) {
+        console.warn("[slack] failed to post follow-up brief", slackError);
+      }
     }
 
     await cleanupOldUploadsSafely({ route: "/api/generate-notes" });

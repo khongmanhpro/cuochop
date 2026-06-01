@@ -7,7 +7,9 @@ import {
   computeManagerDigest,
   isActionItemStatus,
   normalizeActionItemUpdate,
+  resolveOwnerId,
 } from "./action-items";
+import type { MatchableMember } from "./action-items";
 
 const baseNotes: VietnameseMeetingNotes = {
   title: "Weekly Ops",
@@ -67,7 +69,7 @@ describe("action tracker helpers", () => {
         userId: "user-1",
         organizationId: "org-1",
         task: "Gửi kế hoạch launch",
-        owner: "An",
+        ownerId: null,
         deadline: "20/05/2026",
         priority: "High",
         status: "todo",
@@ -97,14 +99,14 @@ describe("action tracker helpers", () => {
   test("normalizes action item update payload", () => {
     expect(
       normalizeActionItemUpdate({
-        owner: "  Bình  ",
+        ownerId: " user-2 ",
         deadline: "21/05/2026",
         priority: "Medium",
         status: "doing",
         notes: "  Cần báo lại trước 17h  ",
       }),
     ).toEqual({
-      owner: "Bình",
+      ownerId: "user-2",
       deadline: "21/05/2026",
       priority: "Medium",
       status: "doing",
@@ -121,17 +123,17 @@ describe("action tracker helpers", () => {
       [
         {
           status: "todo",
-          owner: "Chưa xác định",
+          ownerId: null,
           deadline: "01/01/2026",
         },
         {
           status: "blocked",
-          owner: "An",
+          ownerId: "user-1",
           deadline: "Chưa xác định",
         },
         {
           status: "done",
-          owner: "Bình",
+          ownerId: "user-2",
           deadline: "2026-05-20",
         },
       ],
@@ -154,13 +156,13 @@ describe("action tracker helpers", () => {
       [
         {
           status: "todo",
-          owner: "An",
+          ownerId: "user-1",
           deadline: "01/01/2026",
           organizationId: "org-1",
         },
         {
           status: "blocked",
-          owner: "Bình",
+          ownerId: "user-2",
           deadline: "Chưa xác định",
           organizationId: "org-2",
         },
@@ -175,5 +177,94 @@ describe("action tracker helpers", () => {
       blocked: 0,
       clearlyOverdue: 1,
     });
+  });
+});
+
+describe("resolveOwnerId", () => {
+  const members: MatchableMember[] = [
+    { id: "u1", name: "Nguyễn Văn An", email: "an@example.com" },
+    { id: "u2", name: "Trần Thị Bình", email: "binh@example.com" },
+    { id: "u3", name: "Lê Minh", email: "leminh@example.com" },
+  ];
+
+  test("returns null for empty or placeholder text", () => {
+    expect(resolveOwnerId("", members)).toBeNull();
+    expect(resolveOwnerId("  ", members)).toBeNull();
+    expect(resolveOwnerId("Chưa xác định", members)).toBeNull();
+  });
+
+  test("exact name match (case-insensitive)", () => {
+    expect(resolveOwnerId("Nguyễn Văn An", members)).toBe("u1");
+    expect(resolveOwnerId("nguyễn văn an", members)).toBe("u1");
+  });
+
+  test("exact email match", () => {
+    expect(resolveOwnerId("binh@example.com", members)).toBe("u2");
+  });
+
+  test("substring match — owner text in member name", () => {
+    expect(resolveOwnerId("An", members)).toBe("u1");
+    expect(resolveOwnerId("Bình", members)).toBe("u2");
+    expect(resolveOwnerId("Minh", members)).toBe("u3");
+  });
+
+  test("reverse substring — member name in owner text", () => {
+    expect(resolveOwnerId("An - Dev Lead", members)).toBe("u1");
+    expect(resolveOwnerId("Trần Thị Bình (QA)", members)).toBe("u2");
+  });
+
+  test("returns null when no match found", () => {
+    expect(resolveOwnerId("Unknown Person", members)).toBeNull();
+    expect(resolveOwnerId("XYZ", members)).toBeNull();
+  });
+
+  test("returns null when members list is empty", () => {
+    expect(resolveOwnerId("An", [])).toBeNull();
+  });
+});
+
+describe("buildActionItemCreatePayloads with orgMembers", () => {
+  test("resolves ownerId when orgMembers provided", () => {
+    const members: MatchableMember[] = [
+      { id: "u1", name: "An", email: "an@example.com" },
+    ];
+
+    const payloads = buildActionItemCreatePayloads({
+      notes: baseNotes,
+      meetingNoteId: "meeting-1",
+      userId: "user-1",
+      organizationId: "org-1",
+      orgMembers: members,
+    });
+
+    expect(payloads).toHaveLength(1);
+    expect(payloads[0].ownerId).toBe("u1");
+  });
+
+  test("keeps ownerId null when no orgMembers provided", () => {
+    const payloads = buildActionItemCreatePayloads({
+      notes: baseNotes,
+      meetingNoteId: "meeting-1",
+      userId: "user-1",
+      organizationId: "org-1",
+    });
+
+    expect(payloads[0].ownerId).toBeNull();
+  });
+
+  test("keeps ownerId null when no match found", () => {
+    const members: MatchableMember[] = [
+      { id: "u99", name: "Phạm Đức", email: "duc@example.com" },
+    ];
+
+    const payloads = buildActionItemCreatePayloads({
+      notes: baseNotes,
+      meetingNoteId: "meeting-1",
+      userId: "user-1",
+      organizationId: "org-1",
+      orgMembers: members,
+    });
+
+    expect(payloads[0].ownerId).toBeNull();
   });
 });

@@ -3,9 +3,10 @@ import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { logout } from "@/app/actions/auth";
 import { FREE_MONTHLY_LIMIT, canViewHistory } from "@/lib/plans";
-import { getActiveOrganization } from "@/lib/organizations";
+import { getUserOrganization } from "@/lib/organizations";
 import { prisma } from "@/lib/db";
 import { NotificationBell } from "./notifications/notification-bell";
+import { GlobalSearch } from "@/components/global-search";
 
 export default async function AppLayout({
   children,
@@ -15,7 +16,7 @@ export default async function AppLayout({
   const user = await getSession();
   if (!user) redirect("/auth/login");
 
-  const activeOrganization = await getActiveOrganization(user.id);
+  const activeOrganization = await getUserOrganization(user.id);
   const isPro = canViewHistory(user, activeOrganization);
   const usageRemaining = Math.max(0, FREE_MONTHLY_LIMIT - user.usageThisMonth);
   const showUpsellBanner = !isPro && usageRemaining <= 2;
@@ -39,6 +40,7 @@ export default async function AppLayout({
             cuochop
           </Link>
           <div className="flex items-center gap-3">
+            <GlobalSearch />
             <NotificationBell
               initialUnreadCount={unreadCount}
               initialNotifications={notifications.map((notification) => ({
@@ -84,13 +86,30 @@ export default async function AppLayout({
               >
                 History
               </Link>
+              <Link
+                href="/settings/account"
+                className="text-sm text-slate-600 hover:text-slate-900"
+              >
+                Account
+              </Link>
               {activeOrganization ? (
-                <Link
-                  href="/settings/team"
-                  className="text-sm text-slate-600 hover:text-slate-900"
-                >
-                  Team
-                </Link>
+                <>
+                  <Link
+                    href="/settings/team"
+                    className="text-sm text-slate-600 hover:text-slate-900"
+                  >
+                    Team
+                  </Link>
+                  {activeOrganization.role === "owner" ||
+                  activeOrganization.role === "admin" ? (
+                    <Link
+                      href="/settings/audit"
+                      className="text-sm text-slate-600 hover:text-slate-900"
+                    >
+                      Audit
+                    </Link>
+                  ) : null}
+                </>
               ) : null}
             </nav>
             {!isPro ? (
@@ -112,9 +131,16 @@ export default async function AppLayout({
                 )}
               </div>
             ) : (
-              <span className="rounded border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
-                {activeOrganization?.plan === "business" ? "Business" : "Pro"}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                  {activeOrganization?.plan === "business" ? "Business" : "Pro"}
+                </span>
+                {activeOrganization ? (
+                  <span className="rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
+                    {activeOrganization.name}
+                  </span>
+                ) : null}
+              </div>
             )}
           </div>
         </div>

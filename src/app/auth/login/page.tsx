@@ -1,14 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { use, useActionState } from "react";
 import Link from "next/link";
 import { login, type AuthFormState } from "@/app/actions/auth";
 
-export default function LoginPage() {
+type LoginSearchParams = { link?: string; email?: string; oauth?: string };
+
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<LoginSearchParams>;
+}) {
   const [state, action, isPending] = useActionState<AuthFormState, FormData>(
     login,
     undefined,
   );
+  const params = use(searchParams ?? Promise.resolve({} as LoginSearchParams));
+  const linkProvider = formatProvider(params.link);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#eef3f8] px-4">
@@ -17,6 +25,20 @@ export default function LoginPage() {
           <p className="text-sm font-semibold uppercase text-blue-700">cuochop</p>
           <h1 className="mt-2 text-2xl font-semibold text-slate-950">Đăng nhập</h1>
         </div>
+
+        <OAuthButtons />
+
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-200" />
+          <span className="text-xs font-medium uppercase text-slate-400">or</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        {linkProvider ? (
+          <p className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+            Nhập mật khẩu cho {params.email} để liên kết tài khoản {linkProvider}.
+          </p>
+        ) : null}
 
         <form action={action} className="space-y-4">
           <div>
@@ -29,6 +51,7 @@ export default function LoginPage() {
               type="email"
               required
               autoComplete="email"
+              defaultValue={params.email ?? ""}
               className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
@@ -71,4 +94,29 @@ export default function LoginPage() {
       </div>
     </main>
   );
+}
+
+function OAuthButtons() {
+  return (
+    <div className="space-y-2">
+      <Link
+        href="/api/auth/oauth/google"
+        className="flex h-10 w-full items-center justify-center rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        Continue with Google
+      </Link>
+      <Link
+        href="/api/auth/oauth/microsoft"
+        className="flex h-10 w-full items-center justify-center rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        Continue with Microsoft
+      </Link>
+    </div>
+  );
+}
+
+function formatProvider(value?: string) {
+  if (value === "google") return "Google";
+  if (value === "microsoft") return "Microsoft";
+  return null;
 }

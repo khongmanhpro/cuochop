@@ -1,14 +1,12 @@
 import { Resend } from "resend";
 
-export type SendEmailInput = {
-  to: string | string[];
-  subject: string;
-  html: string;
-  text?: string;
-};
-
-export async function sendEmail({ to, subject, html, text }: SendEmailInput) {
-  const apiKey = process.env.EMAIL_API_KEY;
+export async function sendEmail(
+  to: string | string[],
+  subject: string,
+  html: string,
+  text?: string,
+) {
+  const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM_ADDRESS;
 
   if (!apiKey || !from) {

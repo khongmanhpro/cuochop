@@ -11,9 +11,11 @@ export type ReminderTemplateItem = {
 export function renderDeadlineReminderEmail({
   appUrl,
   items,
+  actionUrl = `${appUrl}/actions?filter=deadlines`,
 }: {
   appUrl: string;
   items: ReminderTemplateItem[];
+  actionUrl?: string;
 }): EmailTemplate {
   const title = `${items.length} action item${items.length === 1 ? "" : "s"} need attention`;
   const rows = items
@@ -24,8 +26,6 @@ export function renderDeadlineReminderEmail({
       </li>`,
     )
     .join("");
-  const actionUrl = `${appUrl}/actions?filter=deadlines`;
-
   return {
     subject: title,
     html: renderEmailLayout({

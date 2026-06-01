@@ -1,9 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import {
+  parsePendingOAuthLinkToken,
+  PENDING_OAUTH_LINK_COOKIE,
+} from "@/lib/oauth";
 import { createSession, deleteSession } from "@/lib/session";
 
 const SignupSchema = z.object({
@@ -78,16 +83,55 @@ export async function login(
     return { message: "Email hoặc mật khẩu không đúng." };
   }
 
+  if (!user.passwordAuthEnabled) {
+    return { message: "Email hoặc mật khẩu không đúng." };
+  }
+
   const passwordMatch = await bcrypt.compare(password, user.passwordHash);
   if (!passwordMatch) {
     return { message: "Email hoặc mật khẩu không đúng." };
   }
 
-  await createSession(user.id);
+  const linkedProvider = await linkPendingOAuthAccountIfPresent(user.id, email);
+  await createSession(user.id, linkedProvider || "password");
   redirect("/app");
 }
 
 export async function logout(): Promise<void> {
   await deleteSession();
   redirect("/");
+}
+
+async function linkPendingOAuthAccountIfPresent(userId: string, email: string) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(PENDING_OAUTH_LINK_COOKIE)?.value;
+  if (!token) return null;
+
+  try {
+    const pending = parsePendingOAuthLinkToken(token);
+    if (pending.email !== email) return null;
+
+    await prisma.oAuthAccount.upsert({
+      where: {
+        userId_provider: {
+          userId,
+          provider: pending.provider,
+        },
+      },
+      create: {
+        userId,
+        provider: pending.provider,
+        providerAccountId: pending.providerAccountId,
+      },
+      update: {
+        providerAccountId: pending.providerAccountId,
+      },
+    });
+
+    cookieStore.delete(PENDING_OAUTH_LINK_COOKIE);
+    return pending.provider;
+  } catch {
+    cookieStore.delete(PENDING_OAUTH_LINK_COOKIE);
+    return null;
+  }
 }

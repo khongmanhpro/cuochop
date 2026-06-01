@@ -16,7 +16,7 @@ describe("deadline reminders", () => {
     expect(parseActionDeadline("Chưa xác định")).toBeNull();
   });
 
-  test("selects due soon or overdue open items and skips duplicates for today", () => {
+  test("selects due soon or overdue open items and skips reminders sent in the last 24 hours", () => {
     const now = new Date("2026-06-01T12:00:00Z");
 
     expect(
@@ -51,6 +51,14 @@ describe("deadline reminders", () => {
         now,
       }),
     ).toBe(false);
+    expect(
+      shouldSendDeadlineReminder({
+        deadline: "2026-05-31",
+        status: "todo",
+        lastReminderSent: new Date("2026-05-31T11:00:00Z"),
+        now,
+      }),
+    ).toBe(true);
   });
 
   test("groups reminder candidates by user email", () => {
@@ -71,5 +79,26 @@ describe("deadline reminders", () => {
     );
 
     expect(groups.get("a@example.com")).toHaveLength(1);
+  });
+
+  test("groups reminder candidates by owner email when owner contains one", () => {
+    const groups = groupReminderCandidatesByEmail(
+      [
+        {
+          id: "item_1",
+          task: "Send recap",
+          owner: "Owner <owner@example.com>",
+          deadline: "2026-06-02",
+          status: "todo",
+          userId: "user_1",
+          userEmail: "creator@example.com",
+          lastReminderSent: null,
+        },
+      ],
+      new Date("2026-06-01T00:00:00Z"),
+    );
+
+    expect(groups.get("owner@example.com")).toHaveLength(1);
+    expect(groups.get("creator@example.com")).toBeUndefined();
   });
 });

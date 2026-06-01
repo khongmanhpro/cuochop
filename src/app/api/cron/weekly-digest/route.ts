@@ -3,7 +3,7 @@ import { verifyCronRequest } from "@/lib/cron";
 import { prisma } from "@/lib/db";
 import { parseActionDeadline } from "@/lib/deadline-reminders";
 import { sendEmail } from "@/lib/email";
-import { renderWeeklyDigestEmail } from "@/lib/email-templates/weekly-digest";
+import { renderDigestEmail } from "@/lib/email-templates/digest";
 
 export const runtime = "nodejs";
 
@@ -17,6 +17,14 @@ export async function POST(request: Request) {
     where: { plan: "business" },
     include: {
       actionItems: {
+        include: {
+          owner: {
+            select: {
+              email: true,
+              name: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       },
       memberships: {
@@ -48,7 +56,7 @@ export async function POST(request: Request) {
     const digest = computeManagerDigest(
       organization.actionItems.map((item) => ({
         status: item.status,
-        owner: item.owner,
+        ownerId: item.ownerId,
         deadline: item.deadline,
         organizationId: item.organizationId,
       })),
@@ -65,11 +73,11 @@ export async function POST(request: Request) {
       .slice(0, 5)
       .map((item) => ({
         task: item.task,
-        owner: item.owner,
+        owner: item.owner ? item.owner.name || item.owner.email : "Unassigned",
         deadline: item.deadline,
       }));
 
-    const email = renderWeeklyDigestEmail({
+    const email = renderDigestEmail({
       organizationName: organization.name,
       appUrl,
       open: digest.open,
@@ -81,22 +89,23 @@ export async function POST(request: Request) {
 
     await Promise.all(
       organization.memberships.map(async (membership) => {
-        await sendEmail({
-          to: membership.user.email,
-          subject: email.subject,
-          html: email.html,
-          text: email.text,
-        });
+        await sendEmail(membership.user.email, email.subject, email.html, email.text);
 
-        await prisma.notification.create({
-          data: {
-            userId: membership.user.id,
-            type: "weekly_digest",
-            title: `${organization.name} weekly digest`,
-            body: `${digest.open} open, ${digest.blocked} blocked, ${digest.clearlyOverdue} overdue.`,
-            actionUrl: "/actions",
-          },
-        });
+        await prisma.$transaction([
+          prisma.user.update({
+            where: { id: membership.user.id },
+            data: { lastDigestSent: new Date() },
+          }),
+          prisma.notification.create({
+            data: {
+              userId: membership.user.id,
+              type: "weekly_digest",
+              title: `${organization.name} weekly digest`,
+              body: `${digest.open} open, ${digest.blocked} blocked, ${digest.clearlyOverdue} overdue.`,
+              actionUrl: "/actions",
+            },
+          }),
+        ]);
         sent += 1;
       }),
     );

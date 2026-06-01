@@ -1,15 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ActionsBoard, type ActionBoardItem, type DecisionLogItem } from "./actions-board";
+import {
+  ActionsBoard,
+  type ActionBoardItem,
+  type DecisionConflictItem,
+  type DecisionLogItem,
+} from "@/components/actions-board";
 import { prisma } from "@/lib/db";
+import { SearchScrollTarget } from "@/components/search-scroll-target";
 import { canViewHistory } from "@/lib/plans";
-import { getActiveOrganization } from "@/lib/organizations";
+import { getUserOrganization } from "@/lib/organizations";
 import { getSession } from "@/lib/session";
 
 type RawActionItem = {
   id: string;
   task: string;
-  owner: string;
+  ownerId: string | null;
   deadline: string;
   priority: string;
   status: string;
@@ -23,6 +29,11 @@ type RawActionItem = {
       name: string | null;
     };
   };
+  owner: {
+    id: string;
+    email: string;
+    name: string | null;
+  } | null;
 };
 
 type RawDecision = {
@@ -38,16 +49,31 @@ type RawDecision = {
   };
 };
 
+type RawConflict = {
+  id: string;
+  decisionId: string;
+  conflictingId: string;
+  similarity: number;
+  reason: string;
+  decision: { content: string };
+  conflicting: { content: string };
+};
+
 export default async function ActionsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ filter?: string }>;
+  searchParams?: Promise<{
+    filter?: string;
+    highlight?: string;
+    meeting?: string;
+    section?: string;
+  }>;
 }) {
   const user = await getSession();
   if (!user) redirect("/auth/login");
   const params = searchParams ? await searchParams : {};
 
-  const activeOrganization = await getActiveOrganization(user.id);
+  const activeOrganization = await getUserOrganization(user.id);
 
   if (!canViewHistory(user, activeOrganization)) {
     return (
@@ -79,12 +105,19 @@ export default async function ActionsPage({
     );
   }
 
-  const [actionItems, decisions] = await Promise.all([
+  const [actionItems, decisions, organizationMembers, rawConflicts] = await Promise.all([
     prisma.actionItem.findMany({
       where: activeOrganization
         ? { organizationId: activeOrganization.id }
         : { userId: user.id },
       include: {
+        owner: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
         meetingNote: {
           select: {
             title: true,
@@ -121,12 +154,42 @@ export default async function ActionsPage({
       orderBy: { createdAt: "desc" },
       take: 80,
     }),
+    activeOrganization
+      ? prisma.membership.findMany({
+          where: { organizationId: activeOrganization.id },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        })
+      : Promise.resolve([]),
+    prisma.decisionConflict.findMany({
+      where: activeOrganization
+        ? {
+            decision: { organizationId: activeOrganization.id },
+          }
+        : {
+            decision: { userId: user.id },
+          },
+      include: {
+        decision: { select: { content: true } },
+        conflicting: { select: { content: true } },
+      },
+      take: 20,
+    }),
   ]);
 
   const items: ActionBoardItem[] = (actionItems as RawActionItem[]).map((item) => ({
     id: item.id,
     task: item.task,
-    owner: item.owner,
+    ownerId: item.ownerId,
+    ownerName: item.owner ? item.owner.name || item.owner.email : "Unassigned",
     deadline: item.deadline,
     priority: item.priority,
     status: item.status,
@@ -147,8 +210,19 @@ export default async function ActionsPage({
     }),
   );
 
+  const conflictItems: DecisionConflictItem[] = (rawConflicts as RawConflict[]).map((c) => ({
+    id: c.id,
+    decisionId: c.decisionId,
+    conflictingId: c.conflictingId,
+    decisionContent: c.decision.content,
+    conflictingContent: c.conflicting.content,
+    similarity: c.similarity,
+    reason: c.reason,
+  }));
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+      <SearchScrollTarget highlightId={params.highlight || params.meeting} />
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase text-blue-700">
@@ -171,6 +245,23 @@ export default async function ActionsPage({
       <ActionsBoard
         initialItems={items}
         decisions={decisionItems}
+        conflicts={conflictItems}
+        assignableMembers={
+          activeOrganization
+            ? organizationMembers.map((membership) => ({
+                id: membership.user.id,
+                label: membership.user.name || membership.user.email,
+                email: membership.user.email,
+              }))
+            : [
+                {
+                  id: user.id,
+                  label: user.name || user.email,
+                  email: user.email,
+                },
+              ]
+        }
+        isTeamContext={Boolean(activeOrganization)}
         initialDeadlineFilter={params.filter === "deadlines"}
       />
     </main>

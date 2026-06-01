@@ -17,13 +17,17 @@ export type SessionUser = {
   id: string;
   email: string;
   name: string | null;
+  authMethod: string;
   plan: string;
   planExpiresAt: Date | null;
   usageThisMonth: number;
   usageResetAt: Date;
 };
 
-export async function createSession(userId: string): Promise<void> {
+export async function createSession(
+  userId: string,
+  authMethod = "password",
+): Promise<void> {
   const expiresAt = new Date(
     Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000,
   );
@@ -32,6 +36,7 @@ export async function createSession(userId: string): Promise<void> {
     data: {
       id: crypto.randomUUID(),
       userId,
+      authMethod,
       expiresAt,
     },
   });
@@ -88,6 +93,7 @@ export async function getSession(): Promise<SessionUser | null> {
         id: user.id,
         email: user.email,
         name: user.name,
+        authMethod: session.authMethod,
         plan: user.plan,
         planExpiresAt: user.planExpiresAt,
         usageThisMonth: 0,
@@ -99,6 +105,7 @@ export async function getSession(): Promise<SessionUser | null> {
       id: user.id,
       email: user.email,
       name: user.name,
+      authMethod: session.authMethod,
       plan: user.plan,
       planExpiresAt: user.planExpiresAt,
       usageThisMonth: user.usageThisMonth,

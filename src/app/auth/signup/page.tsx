@@ -19,6 +19,14 @@ export default function SignupPage() {
           <p className="mt-1 text-sm text-slate-500">Miễn phí, không cần thẻ tín dụng.</p>
         </div>
 
+        <OAuthButtons />
+
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-200" />
+          <span className="text-xs font-medium uppercase text-slate-400">or</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
         <form action={action} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-semibold text-slate-900">
@@ -94,5 +102,24 @@ export default function SignupPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+function OAuthButtons() {
+  return (
+    <div className="space-y-2">
+      <Link
+        href="/api/auth/oauth/google"
+        className="flex h-10 w-full items-center justify-center rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        Continue with Google
+      </Link>
+      <Link
+        href="/api/auth/oauth/microsoft"
+        className="flex h-10 w-full items-center justify-center rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        Continue with Microsoft
+      </Link>
+    </div>
   );
 }

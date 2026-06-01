@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { logAudit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -46,7 +47,8 @@ export async function POST(request: Request) {
       const lsSubscriptionId = String(attrs?.subscription_id ?? attrs?.id ?? "");
 
       if (organizationId) {
-        await prisma.organization.update({
+        const before = await prisma.organization.findUnique({ where: { id: organizationId } });
+        const organization = await prisma.organization.update({
           where: { id: organizationId },
           data: {
             plan: "business",
@@ -55,8 +57,10 @@ export async function POST(request: Request) {
             lsSubscriptionId: lsSubscriptionId || undefined,
           },
         });
+        await logPlanAuditForOrganization(organizationId, before, organization);
       } else if (userId) {
-        await prisma.user.update({
+        const before = await prisma.user.findUnique({ where: { id: userId } });
+        const user = await prisma.user.update({
           where: { id: userId },
           data: {
             plan: tier,
@@ -65,33 +69,42 @@ export async function POST(request: Request) {
             lsSubscriptionId: lsSubscriptionId || undefined,
           },
         });
+        await logPlanAuditForUser(userId, before, user);
       }
     } else if (eventName === "subscription_cancelled") {
       const attrs = getAttributes(event);
       const endsAt = attrs?.ends_at ? new Date(String(attrs.ends_at)) : null;
 
       if (organizationId) {
-        await prisma.organization.update({
+        const before = await prisma.organization.findUnique({ where: { id: organizationId } });
+        const organization = await prisma.organization.update({
           where: { id: organizationId },
           data: { planExpiresAt: endsAt },
         });
+        await logPlanAuditForOrganization(organizationId, before, organization);
       } else if (userId) {
-        await prisma.user.update({
+        const before = await prisma.user.findUnique({ where: { id: userId } });
+        const user = await prisma.user.update({
           where: { id: userId },
           data: { planExpiresAt: endsAt },
         });
+        await logPlanAuditForUser(userId, before, user);
       }
     } else if (eventName === "subscription_expired") {
       if (organizationId) {
-        await prisma.organization.update({
+        const before = await prisma.organization.findUnique({ where: { id: organizationId } });
+        const organization = await prisma.organization.update({
           where: { id: organizationId },
           data: { plan: "free", planExpiresAt: null },
         });
+        await logPlanAuditForOrganization(organizationId, before, organization);
       } else if (userId) {
-        await prisma.user.update({
+        const before = await prisma.user.findUnique({ where: { id: userId } });
+        const user = await prisma.user.update({
           where: { id: userId },
           data: { plan: "free", planExpiresAt: null },
         });
+        await logPlanAuditForUser(userId, before, user);
       }
     }
   } catch (error) {
@@ -100,6 +113,56 @@ export async function POST(request: Request) {
   }
 
   return new Response("OK", { status: 200 });
+}
+
+async function logPlanAuditForOrganization(
+  organizationId: string,
+  before: { plan: string; planExpiresAt: Date | null } | null,
+  after: { plan: string; planExpiresAt: Date | null },
+) {
+  const actor = await prisma.membership.findFirst({
+    where: { organizationId, role: { in: ["owner", "admin"] } },
+    select: { userId: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!actor) return;
+
+  await logAudit({
+    organizationId,
+    userId: actor.userId,
+    action: "update",
+    entityType: "Organization",
+    entityId: organizationId,
+    before: {
+      plan: before?.plan ?? null,
+      planExpiresAt: before?.planExpiresAt ?? null,
+    },
+    after: {
+      plan: after.plan,
+      planExpiresAt: after.planExpiresAt,
+    },
+  });
+}
+
+async function logPlanAuditForUser(
+  userId: string,
+  before: { plan: string; planExpiresAt: Date | null } | null,
+  after: { plan: string; planExpiresAt: Date | null },
+) {
+  await logAudit({
+    userId,
+    action: "update",
+    entityType: "User",
+    entityId: userId,
+    before: {
+      plan: before?.plan ?? null,
+      planExpiresAt: before?.planExpiresAt ?? null,
+    },
+    after: {
+      plan: after.plan,
+      planExpiresAt: after.planExpiresAt,
+    },
+  });
 }
 
 function verifySignature(body: string, signature: string, secret: string): boolean {

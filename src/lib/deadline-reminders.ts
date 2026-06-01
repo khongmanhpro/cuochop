@@ -6,6 +6,7 @@ export type ReminderCandidate = {
   status: string;
   userId: string;
   userEmail: string;
+  ownerEmail?: string | null;
   lastReminderSent: Date | null;
 };
 
@@ -38,7 +39,7 @@ export function shouldSendDeadlineReminder({
   now?: Date;
 }) {
   if (status === "done") return false;
-  if (wasReminderSentToday(lastReminderSent, now)) return false;
+  if (wasReminderSentWithin24Hours(lastReminderSent, now)) return false;
 
   const parsed = parseActionDeadline(deadline);
   if (!parsed) return false;
@@ -56,17 +57,18 @@ export function groupReminderCandidatesByEmail(
 
   for (const candidate of candidates) {
     if (!shouldSendDeadlineReminder({ ...candidate, now })) continue;
-    const items = groups.get(candidate.userEmail) || [];
+    const email = candidate.ownerEmail || extractEmail(candidate.owner) || candidate.userEmail;
+    const items = groups.get(email) || [];
     items.push(candidate);
-    groups.set(candidate.userEmail, items);
+    groups.set(email, items);
   }
 
   return groups;
 }
 
-function wasReminderSentToday(value: Date | null, now: Date) {
+function wasReminderSentWithin24Hours(value: Date | null, now: Date) {
   if (!value) return false;
-  return startOfUtcDay(value).getTime() === startOfUtcDay(now).getTime();
+  return now.getTime() - value.getTime() < 24 * 60 * 60 * 1000;
 }
 
 function startOfUtcDay(value: Date) {
@@ -77,4 +79,8 @@ function startOfUtcDay(value: Date) {
 
 function addUtcDays(value: Date, days: number) {
   return new Date(value.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function extractEmail(value: string) {
+  return value.match(/[^\s<>,;]+@[^\s<>,;]+\.[^\s<>,;]+/)?.[0] ?? null;
 }

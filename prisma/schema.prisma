@@ -8,25 +8,30 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(cuid())
-  email            String         @unique
-  name             String?
-  passwordHash     String
-  plan             String         @default("free")
-  planExpiresAt    DateTime?
-  usageThisMonth   Int            @default(0)
-  usageResetAt     DateTime       @default(now())
-  digestOptOut     Boolean        @default(false)
-  digestFrequency  String         @default("weekly")
-  lsCustomerId     String?
-  lsSubscriptionId String?
-  createdAt        DateTime       @default(now())
-  sessions         Session[]
-  meetingNotes     MeetingNote[]
-  actionItems      ActionItem[]
-  decisions        Decision[]
-  memberships      Membership[]
-  notifications    Notification[]
+  id                  String         @id @default(cuid())
+  email               String         @unique
+  name                String?
+  passwordHash        String
+  passwordAuthEnabled Boolean        @default(true)
+  plan                String         @default("free")
+  planExpiresAt       DateTime?
+  usageThisMonth      Int            @default(0)
+  usageResetAt        DateTime       @default(now())
+  digestOptOut        Boolean        @default(false)
+  digestFrequency     String         @default("weekly")
+  lastDigestSent      DateTime?
+  lsCustomerId        String?
+  lsSubscriptionId    String?
+  createdAt           DateTime       @default(now())
+  sessions            Session[]
+  oauthAccounts       OAuthAccount[]
+  auditLogs           AuditLog[]
+  meetingNotes        MeetingNote[]
+  actionItems         ActionItem[]   @relation("CreatedActionItems")
+  assignedActionItems ActionItem[]   @relation("AssignedActionItems")
+  decisions           Decision[]
+  memberships         Membership[]
+  notifications       Notification[]
 }
 
 model Organization {
@@ -37,12 +42,15 @@ model Organization {
   planExpiresAt    DateTime?
   lsCustomerId     String?
   lsSubscriptionId String?
+  slackAutoPostEnabled Boolean           @default(false)
   createdAt        DateTime             @default(now())
   memberships      Membership[]
   invites          OrganizationInvite[]
   meetingNotes     MeetingNote[]
   actionItems      ActionItem[]
   decisions        Decision[]
+  slackIntegration SlackIntegration?
+  auditLogs        AuditLog[]
 }
 
 model Membership {
@@ -73,8 +81,39 @@ model OrganizationInvite {
 model Session {
   id        String   @id
   userId    String
+  authMethod String  @default("password")
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+model AuditLog {
+  id             String        @id @default(cuid())
+  organizationId String?
+  userId         String
+  action         String
+  entityType     String
+  entityId       String
+  changes        String
+  ipAddress      String?
+  createdAt      DateTime      @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model MeetingNote {
@@ -99,8 +138,8 @@ model ActionItem {
   meetingNoteId    String
   userId           String
   organizationId   String?
+  ownerId          String?
   task             String
-  owner            String
   deadline         String
   priority         String
   status           String        @default("todo")
@@ -109,23 +148,27 @@ model ActionItem {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   meetingNote      MeetingNote   @relation(fields: [meetingNoteId], references: [id], onDelete: Cascade)
-  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User          @relation("CreatedActionItems", fields: [userId], references: [id], onDelete: Cascade)
+  owner            User?         @relation("AssignedActionItems", fields: [ownerId], references: [id], onDelete: SetNull)
   organization     Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
+  @@index([ownerId])
   @@index([lastReminderSent])
 }
 
 model Decision {
-  id             String        @id @default(cuid())
+  id             String             @id @default(cuid())
   meetingNoteId  String
   userId         String
   organizationId String?
   content        String
-  createdAt      DateTime      @default(now())
-  meetingNote    MeetingNote   @relation(fields: [meetingNoteId], references: [id], onDelete: Cascade)
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime           @default(now())
+  meetingNote    MeetingNote        @relation(fields: [meetingNoteId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  conflicts      DecisionConflict[] @relation("conflict_source")
+  conflictedBy   DecisionConflict[] @relation("conflict_target")
 
   @@index([organizationId])
 }
@@ -143,4 +186,31 @@ model Notification {
 
   @@index([userId, read])
   @@index([createdAt])
+}
+
+model DecisionConflict {
+  id              String   @id @default(cuid())
+  decisionId      String
+  conflictingId   String
+  similarity      Float
+  reason          String
+  createdAt       DateTime @default(now())
+
+  decision        Decision @relation("conflict_source", fields: [decisionId], references: [id], onDelete: Cascade)
+  conflicting     Decision @relation("conflict_target", fields: [conflictingId], references: [id], onDelete: Cascade)
+
+  @@unique([decisionId, conflictingId])
+  @@index([decisionId])
+  @@index([conflictingId])
+}
+
+model SlackIntegration {
+  organizationId String       @id
+  teamId         String
+  accessToken    String
+  channelId      String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
 }

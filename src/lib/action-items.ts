@@ -16,7 +16,7 @@ export type ActionItemCreatePayload = {
   userId: string;
   organizationId?: string | null;
   task: string;
-  owner: string;
+  ownerId?: string | null;
   deadline: string;
   priority: ActionItemPriority;
   status: ActionItemStatus;
@@ -31,7 +31,7 @@ export type DecisionCreatePayload = {
 };
 
 export type ActionItemUpdatePayload = Partial<{
-  owner: string;
+  ownerId: string | null;
   deadline: string;
   priority: ActionItemPriority;
   status: ActionItemStatus;
@@ -40,12 +40,18 @@ export type ActionItemUpdatePayload = Partial<{
 
 export type DigestActionItem = {
   status: string;
-  owner: string;
+  ownerId?: string | null;
   deadline: string;
   organizationId?: string | null;
 };
 
 const fallback = "Chưa xác định";
+
+export type MatchableMember = {
+  id: string;
+  name: string | null;
+  email: string;
+};
 
 export function isActionItemStatus(value: unknown): value is ActionItemStatus {
   return ACTION_ITEM_STATUSES.includes(value as ActionItemStatus);
@@ -55,16 +61,52 @@ export function isActionItemPriority(value: unknown): value is ActionItemPriorit
   return ACTION_ITEM_PRIORITIES.includes(value as ActionItemPriority);
 }
 
+export function resolveOwnerId(
+  ownerText: string,
+  members: MatchableMember[],
+): string | null {
+  const normalized = normalizeForMatch(ownerText);
+  if (!normalized || normalized === "chưa xác định") return null;
+
+  // 1. Exact name or email match
+  for (const m of members) {
+    if (m.name && normalizeForMatch(m.name) === normalized) return m.id;
+    if (normalizeForMatch(m.email) === normalized) return m.id;
+  }
+
+  // 2. Substring match — owner text contained in member name
+  for (const m of members) {
+    if (m.name && normalizeForMatch(m.name).includes(normalized)) return m.id;
+  }
+
+  // 3. Word match — any word from owner text matches a word in member name
+  //    Handles "An - Dev Lead" matching "Nguyễn Văn An" via the word "An"
+  const ownerWords = normalized.split(/[\s\-_/]+/).filter((w) => w.length >= 2);
+  for (const m of members) {
+    if (!m.name) continue;
+    const nameWords = normalizeForMatch(m.name).split(/\s+/);
+    if (ownerWords.some((ow) => nameWords.includes(ow))) return m.id;
+  }
+
+  return null;
+}
+
+function normalizeForMatch(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 export function buildActionItemCreatePayloads({
   notes,
   meetingNoteId,
   userId,
   organizationId,
+  orgMembers,
 }: {
   notes: VietnameseMeetingNotes;
   meetingNoteId: string;
   userId: string;
   organizationId?: string | null;
+  orgMembers?: MatchableMember[];
 }): ActionItemCreatePayload[] {
   return notes.actionItems
     .filter((item) => !isPlaceholderOnlyActionItem(item))
@@ -73,7 +115,7 @@ export function buildActionItemCreatePayloads({
       userId,
       organizationId,
       task: textOrFallback(item.task),
-      owner: textOrFallback(item.owner),
+      ownerId: orgMembers?.length ? resolveOwnerId(item.owner, orgMembers) : null,
       deadline: textOrFallback(item.deadline),
       priority: isActionItemPriority(item.priority) ? item.priority : fallback,
       status: "todo",
@@ -108,8 +150,8 @@ export function normalizeActionItemUpdate(
 ): ActionItemUpdatePayload {
   const update: ActionItemUpdatePayload = {};
 
-  if ("owner" in value) {
-    update.owner = normalizeTextField(value.owner, "owner");
+  if ("ownerId" in value) {
+    update.ownerId = normalizeNullableId(value.ownerId, "ownerId");
   }
 
   if ("deadline" in value) {
@@ -149,7 +191,7 @@ export function computeManagerDigest(
   const done = scopedActionItems.filter((item) => item.status === "done").length;
   const blocked = scopedActionItems.filter((item) => item.status === "blocked").length;
   const open = scopedActionItems.filter((item) => item.status !== "done").length;
-  const withoutOwner = scopedActionItems.filter((item) => isMissing(item.owner)).length;
+  const withoutOwner = scopedActionItems.filter((item) => !item.ownerId).length;
   const clearlyOverdue = scopedActionItems.filter(
     (item) => item.status !== "done" && isClearlyOverdue(item.deadline, now),
   ).length;
@@ -186,6 +228,15 @@ function normalizeTextField(value: unknown, field: string) {
   }
 
   return value.trim().slice(0, 500);
+}
+
+function normalizeNullableId(value: unknown, field: string) {
+  if (value === null || value === "") return null;
+  if (typeof value !== "string") {
+    throw new Error(`Invalid action item ${field}.`);
+  }
+
+  return value.trim().slice(0, 100) || null;
 }
 
 function isClearlyOverdue(deadline: string, now: Date) {

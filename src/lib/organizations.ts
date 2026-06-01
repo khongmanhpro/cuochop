@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { logAudit } from "./audit";
 import type { ActiveOrganizationPlan } from "./plans";
 
 export const ORGANIZATION_ROLES = ["owner", "admin", "member"] as const;
@@ -29,11 +30,13 @@ export async function createOrganization({
   name,
   slug,
   plan = "free",
+  ipAddress,
 }: {
   userId: string;
   name: string;
   slug?: string;
   plan?: "free" | "pro" | "business";
+  ipAddress?: string | null;
 }) {
   const organizationName = name.trim();
   if (!organizationName) {
@@ -43,7 +46,7 @@ export async function createOrganization({
   const baseSlug = normalizeSlug(slug || organizationName);
   const organizationSlug = await nextAvailableSlug(baseSlug);
 
-  return prisma.$transaction(async (tx) => {
+  const organization = await prisma.$transaction(async (tx) => {
     const organization = await tx.organization.create({
       data: {
         name: organizationName,
@@ -60,6 +63,18 @@ export async function createOrganization({
 
     return organization;
   });
+
+  await logAudit({
+    organizationId: organization.id,
+    userId,
+    action: "create",
+    entityType: "Organization",
+    entityId: organization.id,
+    after: { id: organization.id, name: organization.name, plan: organization.plan },
+    ipAddress,
+  });
+
+  return organization;
 }
 
 export async function inviteMember({
@@ -67,11 +82,13 @@ export async function inviteMember({
   organizationId,
   email,
   role = "member",
+  ipAddress,
 }: {
   actorUserId: string;
   organizationId: string;
   email: string;
   role?: OrganizationRole;
+  ipAddress?: string | null;
 }) {
   assertRole(role);
   await assertCanManageMembers(actorUserId, organizationId);
@@ -106,6 +123,16 @@ export async function inviteMember({
       where: { organizationId, email: normalizedEmail },
     });
 
+    await logAudit({
+      organizationId,
+      userId: actorUserId,
+      action: "create",
+      entityType: "Membership",
+      entityId: `${user.id}:${organizationId}`,
+      after: { userId: user.id, email: normalizedEmail, role },
+      ipAddress,
+    });
+
     return { status: "added" as const, membership };
   }
 
@@ -134,15 +161,17 @@ export async function removeMember({
   actorUserId,
   organizationId,
   userId,
+  ipAddress,
 }: {
   actorUserId: string;
   organizationId: string;
   userId: string;
+  ipAddress?: string | null;
 }) {
   await assertCanManageMembers(actorUserId, organizationId);
   await assertNotLastOwner(organizationId, userId);
 
-  return prisma.membership.delete({
+  const membership = await prisma.membership.delete({
     where: {
       userId_organizationId: {
         userId,
@@ -150,6 +179,18 @@ export async function removeMember({
       },
     },
   });
+
+  await logAudit({
+    organizationId,
+    userId: actorUserId,
+    action: "delete",
+    entityType: "Membership",
+    entityId: `${userId}:${organizationId}`,
+    before: { userId, role: membership.role },
+    ipAddress,
+  });
+
+  return membership;
 }
 
 export async function updateMemberRole({
@@ -157,11 +198,13 @@ export async function updateMemberRole({
   organizationId,
   userId,
   role,
+  ipAddress,
 }: {
   actorUserId: string;
   organizationId: string;
   userId: string;
   role: OrganizationRole;
+  ipAddress?: string | null;
 }) {
   assertRole(role);
   await assertCanManageMembers(actorUserId, organizationId);
@@ -170,7 +213,16 @@ export async function updateMemberRole({
     await assertNotLastOwner(organizationId, userId);
   }
 
-  return prisma.membership.update({
+  const before = await prisma.membership.findUnique({
+    where: {
+      userId_organizationId: {
+        userId,
+        organizationId,
+      },
+    },
+  });
+
+  const membership = await prisma.membership.update({
     where: {
       userId_organizationId: {
         userId,
@@ -179,6 +231,19 @@ export async function updateMemberRole({
     },
     data: { role },
   });
+
+  await logAudit({
+    organizationId,
+    userId: actorUserId,
+    action: "update",
+    entityType: "Membership",
+    entityId: `${userId}:${organizationId}`,
+    before: { role: before?.role ?? null },
+    after: { role: membership.role },
+    ipAddress,
+  });
+
+  return membership;
 }
 
 export async function getOrganizationMembers({
@@ -249,6 +314,10 @@ export async function getActiveOrganization(
     planExpiresAt: membership.organization.planExpiresAt,
     role: membership.role,
   };
+}
+
+export async function getUserOrganization(userId: string) {
+  return getActiveOrganization(userId);
 }
 
 async function assertCanManageMembers(userId: string, organizationId: string) {

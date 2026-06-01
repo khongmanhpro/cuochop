@@ -1,21 +1,54 @@
 import { lemonSqueezySetup, createCheckout } from "@lemonsqueezy/lemonsqueezy.js";
 import { getSession } from "@/lib/session";
 import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
+import {
+  getCheckoutCustomData,
+  getCheckoutVariantId,
+  normalizeCheckoutTier,
+} from "@/lib/billing";
+import { getActiveOrganization } from "@/lib/organizations";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const user = await getSession();
     if (!user) {
       throw appApiError("UNAUTHENTICATED", "Bạn cần đăng nhập.", 401);
     }
 
+    const body: unknown = await request.json().catch(() => ({}));
+    const payload = isRecord(body) ? body : {};
+    const tier = normalizeCheckoutTier(payload.tier);
+    const organizationId =
+      typeof payload.organizationId === "string" ? payload.organizationId : null;
+
+    if (organizationId) {
+      const activeOrganization = await getActiveOrganization(user.id);
+      if (activeOrganization?.id !== organizationId) {
+        throw appApiError(
+          "FORBIDDEN",
+          "Bạn không có quyền nâng cấp workspace này.",
+          403,
+        );
+      }
+    }
+
     const apiKey = process.env.LEMONSQUEEZY_API_KEY;
     const storeId = process.env.LEMONSQUEEZY_STORE_ID;
-    const variantId = process.env.LEMONSQUEEZY_VARIANT_ID;
 
-    if (!apiKey || !storeId || !variantId) {
+    if (!apiKey || !storeId) {
+      throw appApiError("INTERNAL_ERROR", "Billing chưa được cấu hình.", 500);
+    }
+
+    let variantId: string;
+    try {
+      variantId = getCheckoutVariantId(tier, {
+        LEMONSQUEEZY_VARIANT_ID: process.env.LEMONSQUEEZY_VARIANT_ID,
+        LEMONSQUEEZY_BUSINESS_VARIANT_ID:
+          process.env.LEMONSQUEEZY_BUSINESS_VARIANT_ID,
+      });
+    } catch {
       throw appApiError("INTERNAL_ERROR", "Billing chưa được cấu hình.", 500);
     }
 
@@ -25,7 +58,11 @@ export async function POST() {
       checkoutData: {
         email: user.email,
         name: user.name ?? undefined,
-        custom: { userId: user.id },
+        custom: getCheckoutCustomData({
+          userId: user.id,
+          tier,
+          organizationId,
+        }),
       },
       checkoutOptions: {
         embed: false,
@@ -51,4 +88,8 @@ export async function POST() {
       fallbackStatus: 500,
     });
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

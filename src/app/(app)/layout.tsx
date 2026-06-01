@@ -3,6 +3,9 @@ import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { logout } from "@/app/actions/auth";
 import { FREE_MONTHLY_LIMIT, canViewHistory } from "@/lib/plans";
+import { getActiveOrganization } from "@/lib/organizations";
+import { prisma } from "@/lib/db";
+import { NotificationBell } from "./notifications/notification-bell";
 
 export default async function AppLayout({
   children,
@@ -12,9 +15,20 @@ export default async function AppLayout({
   const user = await getSession();
   if (!user) redirect("/auth/login");
 
-  const isPro = canViewHistory(user);
+  const activeOrganization = await getActiveOrganization(user.id);
+  const isPro = canViewHistory(user, activeOrganization);
   const usageRemaining = Math.max(0, FREE_MONTHLY_LIMIT - user.usageThisMonth);
   const showUpsellBanner = !isPro && usageRemaining <= 2;
+  const [notifications, unreadCount] = await Promise.all([
+    prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+    prisma.notification.count({
+      where: { userId: user.id, read: false },
+    }),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#eef3f8]">
@@ -25,6 +39,18 @@ export default async function AppLayout({
             cuochop
           </Link>
           <div className="flex items-center gap-3">
+            <NotificationBell
+              initialUnreadCount={unreadCount}
+              initialNotifications={notifications.map((notification) => ({
+                id: notification.id,
+                type: notification.type,
+                title: notification.title,
+                body: notification.body,
+                read: notification.read,
+                actionUrl: notification.actionUrl,
+                createdAt: notification.createdAt.toISOString(),
+              }))}
+            />
             <span className="text-sm text-slate-600">{user.name || user.email}</span>
             <form action={logout}>
               <button
@@ -58,6 +84,14 @@ export default async function AppLayout({
               >
                 History
               </Link>
+              {activeOrganization ? (
+                <Link
+                  href="/settings/team"
+                  className="text-sm text-slate-600 hover:text-slate-900"
+                >
+                  Team
+                </Link>
+              ) : null}
             </nav>
             {!isPro ? (
               <div className="flex items-center gap-2">
@@ -79,7 +113,7 @@ export default async function AppLayout({
               </div>
             ) : (
               <span className="rounded border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
-                Pro
+                {activeOrganization?.plan === "business" ? "Business" : "Pro"}
               </span>
             )}
           </div>

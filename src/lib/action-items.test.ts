@@ -58,12 +58,14 @@ describe("action tracker helpers", () => {
       notes: baseNotes,
       meetingNoteId: "meeting-1",
       userId: "user-1",
+      organizationId: "org-1",
     });
 
     expect(payloads).toEqual([
       {
         meetingNoteId: "meeting-1",
         userId: "user-1",
+        organizationId: "org-1",
         task: "Gửi kế hoạch launch",
         owner: "An",
         deadline: "20/05/2026",
@@ -79,12 +81,14 @@ describe("action tracker helpers", () => {
       notes: baseNotes,
       meetingNoteId: "meeting-1",
       userId: "user-1",
+      organizationId: "org-1",
     });
 
     expect(payloads).toEqual([
       {
         meetingNoteId: "meeting-1",
         userId: "user-1",
+        organizationId: "org-1",
         content: "Chốt launch vào 20/05",
       },
     ]);
@@ -142,6 +146,34 @@ describe("action tracker helpers", () => {
       clearlyOverdue: 1,
       done: 1,
       doneRatio: 1 / 3,
+    });
+  });
+
+  test("computes manager digest metrics for a single organization", () => {
+    const digest = computeManagerDigest(
+      [
+        {
+          status: "todo",
+          owner: "An",
+          deadline: "01/01/2026",
+          organizationId: "org-1",
+        },
+        {
+          status: "blocked",
+          owner: "Bình",
+          deadline: "Chưa xác định",
+          organizationId: "org-2",
+        },
+      ],
+      new Date("2026-05-15T00:00:00Z"),
+      "org-1",
+    );
+
+    expect(digest).toMatchObject({
+      total: 1,
+      open: 1,
+      blocked: 0,
+      clearlyOverdue: 1,
     });
   });
 });

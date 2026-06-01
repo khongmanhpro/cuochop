@@ -21,6 +21,7 @@ export type ActionBoardItem = {
   createdAt: string;
   meetingTitle: string;
   audioName: string;
+  createdBy: string;
 };
 
 export type DecisionLogItem = {
@@ -28,6 +29,7 @@ export type DecisionLogItem = {
   content: string;
   createdAt: string;
   meetingTitle: string;
+  createdBy: string;
 };
 
 type Filters = {
@@ -37,6 +39,7 @@ type Filters = {
   noOwner: boolean;
   blocked: boolean;
   overdue: boolean;
+  deadlineWindow: boolean;
 };
 
 const initialFilters: Filters = {
@@ -46,17 +49,23 @@ const initialFilters: Filters = {
   noOwner: false,
   blocked: false,
   overdue: false,
+  deadlineWindow: false,
 };
 
 export function ActionsBoard({
   initialItems,
   decisions,
+  initialDeadlineFilter = false,
 }: {
   initialItems: ActionBoardItem[];
   decisions: DecisionLogItem[];
+  initialDeadlineFilter?: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
-  const [filters, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState<Filters>({
+    ...initialFilters,
+    deadlineWindow: initialDeadlineFilter,
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -87,6 +96,7 @@ export function ActionsBoard({
         if (filters.noOwner && !isMissing(item.owner)) return false;
         if (filters.blocked && item.status !== "blocked") return false;
         if (filters.overdue && !isClearlyOverdue(item.deadline)) return false;
+        if (filters.deadlineWindow && !isDueSoonOrOverdue(item.deadline)) return false;
         return true;
       }),
     [filters, items],
@@ -208,13 +218,12 @@ export function ActionsBoard({
             onChange={(value) => updateFilter("noOwner", value)}
           />
           <FilterToggle
-            label="Blocked / Overdue"
-            checked={filters.blocked || filters.overdue}
+            label="Deadlines"
+            checked={filters.deadlineWindow}
             onChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                blocked: value,
-                overdue: value,
+                deadlineWindow: value,
               }))
             }
           />
@@ -234,7 +243,7 @@ export function ActionsBoard({
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-4 py-3 font-semibold">Task</th>
@@ -242,6 +251,7 @@ export function ActionsBoard({
                 <th className="px-4 py-3 font-semibold">Deadline</th>
                 <th className="px-4 py-3 font-semibold">Priority</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-4 py-3 font-semibold">Created by</th>
                 <th className="px-4 py-3 font-semibold">Source</th>
                 <th className="px-4 py-3 font-semibold">Actions</th>
               </tr>
@@ -279,7 +289,8 @@ export function ActionsBoard({
               >
                 <p className="text-sm text-slate-800">{decision.content}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {decision.meetingTitle} · {formatDate(decision.createdAt)}
+                  {decision.meetingTitle} · {decision.createdBy} ·{" "}
+                  {formatDate(decision.createdAt)}
                 </p>
               </div>
             ))
@@ -360,6 +371,7 @@ function ActionRow({
             onChange={(status) => setDraft({ ...draft, status })}
           />
         </td>
+        <td className="px-4 py-3 text-xs text-slate-500">{item.createdBy}</td>
         <td className="px-4 py-3 text-xs text-slate-500">{item.meetingTitle}</td>
         <td className="px-4 py-3">
           <div className="flex gap-2">
@@ -406,6 +418,7 @@ function ActionRow({
           onChange={(status) => onPatch({ status })}
         />
       </td>
+      <td className="px-4 py-3 text-xs text-slate-600">{item.createdBy}</td>
       <td className="px-4 py-3 text-xs text-slate-500">
         {item.meetingTitle}
         <br />
@@ -500,9 +513,9 @@ function isMissing(value: string) {
 }
 
 function isClearlyOverdue(deadline: string) {
-  const text = deadline.trim();
-  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
-  const slash = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
+  const parsed = parseClearDeadline(deadline);
+  if (!parsed) return false;
+
   const now = new Date();
   const today = Date.UTC(
     now.getUTCFullYear(),
@@ -510,19 +523,40 @@ function isClearlyOverdue(deadline: string) {
     now.getUTCDate(),
   );
 
+  return parsed.getTime() < today;
+}
+
+function isDueSoonOrOverdue(deadline: string) {
+  const parsed = parseClearDeadline(deadline);
+  if (!parsed) return false;
+
+  const now = new Date();
+  const today = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
+  const twoDaysFromNow = today + 2 * 24 * 60 * 60 * 1000;
+
+  return parsed.getTime() <= twoDaysFromNow;
+}
+
+function parseClearDeadline(deadline: string) {
+  const text = deadline.trim();
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  const slash = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
+
   if (iso) {
-    return (
-      Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])) < today
-    );
+    return new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
   }
 
   if (slash) {
-    return (
-      Date.UTC(Number(slash[3]), Number(slash[2]) - 1, Number(slash[1])) < today
+    return new Date(
+      Date.UTC(Number(slash[3]), Number(slash[2]) - 1, Number(slash[1])),
     );
   }
 
-  return false;
+  return null;
 }
 
 function formatDate(value: string) {

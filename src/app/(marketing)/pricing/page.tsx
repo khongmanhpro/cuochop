@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { CheckoutButton } from "./checkout-button";
+import { FREE_MONTHLY_LIMIT } from "@/lib/plans";
 
 const FREE_FEATURES = [
-  "3 cuộc họp/tháng",
+  `${FREE_MONTHLY_LIMIT} cuộc họp/tháng`,
   "Transcript và meeting notes cơ bản",
   "Copy Markdown",
   "Download .md",
@@ -15,6 +17,13 @@ const PRO_FEATURES = [
   "Follow-up Brief",
   "Manager Digest",
   "Download .docx management report",
+];
+
+const BUSINESS_FEATURES = [
+  "Team workspace",
+  "Shared Action Board",
+  "Manager Digest across team",
+  "Priority support",
 ];
 
 export default function PricingPage() {
@@ -49,11 +58,12 @@ export default function PricingPage() {
           </h1>
           <p className="mt-3 text-lg leading-8 text-slate-600">
             Free để thử chất lượng AI. Pro Manager để theo dõi việc phải làm,
-            blocker và quyết định qua nhiều cuộc họp.
+            blocker và quyết định qua nhiều cuộc họp. Business mở workspace
+            chung cho cả team.
           </p>
         </div>
 
-        <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+        <div className="mx-auto mt-12 grid max-w-6xl gap-6 lg:grid-cols-3">
           <PricingCard
             name="Free"
             price="$0"
@@ -70,16 +80,25 @@ export default function PricingPage() {
             description="Dành cho founder/manager cần biến họp thành accountability."
             features={PRO_FEATURES}
             cta="Nâng cấp Pro"
-            href="/auth/signup"
+            tier="pro"
             highlighted
+          />
+          <PricingCard
+            name="Business"
+            price="$49"
+            suffix="/tháng"
+            description="Dành cho team cần workspace chung và visibility qua nhiều người."
+            features={BUSINESS_FEATURES}
+            cta="Nâng cấp Business"
+            tier="business"
           />
         </div>
 
-        <div className="mx-auto mt-10 max-w-4xl rounded-lg border border-slate-200 bg-slate-50 p-5">
-          <h2 className="font-semibold text-slate-950">Team plan</h2>
+        <div className="mx-auto mt-10 max-w-6xl rounded-lg border border-blue-100 bg-blue-50 p-5">
+          <h2 className="font-semibold text-slate-950">Team workspace is live</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Team workspace, email reminders và integrations sẽ được thêm sau.
-            Bản hiện tại tập trung làm Pro Manager thật mạnh trước.
+            Business gom meeting notes, Action Board, Decision Log và Manager
+            Digest theo workspace để manager nhìn được follow-through của cả team.
           </p>
         </div>
       </section>
@@ -95,6 +114,7 @@ function PricingCard({
   features,
   cta,
   href,
+  tier,
   highlighted = false,
 }: {
   name: string;
@@ -103,9 +123,14 @@ function PricingCard({
   description: string;
   features: string[];
   cta: string;
-  href: string;
+  href?: string;
+  tier?: "pro" | "business";
   highlighted?: boolean;
 }) {
+  const ctaClasses = highlighted
+    ? "flex h-10 w-full items-center justify-center rounded-md bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:bg-blue-100"
+    : "flex h-10 w-full items-center justify-center rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:border-blue-400 hover:text-blue-700 disabled:bg-slate-100";
+
   return (
     <div
       className={
@@ -161,16 +186,15 @@ function PricingCard({
           </li>
         ))}
       </ul>
-      <Link
-        href={href}
-        className={
-          highlighted
-            ? "mt-8 flex h-10 items-center justify-center rounded-md bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50"
-            : "mt-8 flex h-10 items-center justify-center rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:border-blue-400 hover:text-blue-700"
-        }
-      >
-        {cta}
-      </Link>
+      {tier ? (
+        <CheckoutButton tier={tier} className={ctaClasses}>
+          {cta}
+        </CheckoutButton>
+      ) : (
+        <Link href={href || "/auth/signup"} className={`mt-8 ${ctaClasses}`}>
+          {cta}
+        </Link>
+      )}
     </div>
   );
 }

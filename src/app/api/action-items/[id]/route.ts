@@ -2,6 +2,7 @@ import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
 import { normalizeActionItemUpdate } from "@/lib/action-items";
 import { prisma } from "@/lib/db";
 import { canViewHistory } from "@/lib/plans";
+import { getActiveOrganization } from "@/lib/organizations";
 import { getSession } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -20,7 +21,9 @@ export async function PATCH(
       );
     }
 
-    if (!canViewHistory(user)) {
+    const activeOrganization = await getActiveOrganization(user.id);
+
+    if (!canViewHistory(user, activeOrganization)) {
       throw appApiError(
         "PLAN_FEATURE_UNAVAILABLE",
         "Action Board chỉ có trên plan Pro. Nâng cấp để theo dõi action items.",
@@ -42,7 +45,9 @@ export async function PATCH(
     const data = normalizeUpdatePayload(payload);
 
     const result = await prisma.actionItem.updateMany({
-      where: { id, userId: user.id },
+      where: activeOrganization
+        ? { id, organizationId: activeOrganization.id }
+        : { id, userId: user.id },
       data,
     });
 

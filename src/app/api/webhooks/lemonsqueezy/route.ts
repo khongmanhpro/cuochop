@@ -32,8 +32,10 @@ export async function POST(request: Request) {
     : undefined;
 
   const userId = customData?.userId as string | undefined;
+  const organizationId = customData?.organizationId as string | undefined;
+  const tier = customData?.tier === "business" ? "business" : "pro";
 
-  if (!userId) {
+  if (!userId && !organizationId) {
     return new Response("OK", { status: 200 });
   }
 
@@ -43,28 +45,54 @@ export async function POST(request: Request) {
       const lsCustomerId = String(attrs?.customer_id ?? "");
       const lsSubscriptionId = String(attrs?.subscription_id ?? attrs?.id ?? "");
 
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          plan: "pro",
-          planExpiresAt: null,
-          lsCustomerId: lsCustomerId || undefined,
-          lsSubscriptionId: lsSubscriptionId || undefined,
-        },
-      });
+      if (organizationId) {
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: {
+            plan: "business",
+            planExpiresAt: null,
+            lsCustomerId: lsCustomerId || undefined,
+            lsSubscriptionId: lsSubscriptionId || undefined,
+          },
+        });
+      } else if (userId) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            plan: tier,
+            planExpiresAt: null,
+            lsCustomerId: lsCustomerId || undefined,
+            lsSubscriptionId: lsSubscriptionId || undefined,
+          },
+        });
+      }
     } else if (eventName === "subscription_cancelled") {
       const attrs = getAttributes(event);
       const endsAt = attrs?.ends_at ? new Date(String(attrs.ends_at)) : null;
 
-      await prisma.user.update({
-        where: { id: userId },
-        data: { planExpiresAt: endsAt },
-      });
+      if (organizationId) {
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: { planExpiresAt: endsAt },
+        });
+      } else if (userId) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { planExpiresAt: endsAt },
+        });
+      }
     } else if (eventName === "subscription_expired") {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { plan: "free", planExpiresAt: null },
-      });
+      if (organizationId) {
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: { plan: "free", planExpiresAt: null },
+        });
+      } else if (userId) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { plan: "free", planExpiresAt: null },
+        });
+      }
     }
   } catch (error) {
     console.error("[webhook] Failed to process event", eventName, error);

@@ -6,6 +6,7 @@ import type { VietnameseMeetingNotes } from "@/lib/gemini";
 import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
 import { getSession } from "@/lib/session";
 import { canExportDocx } from "@/lib/plans";
+import { getActiveOrganization } from "@/lib/organizations";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (format === "docx" && !canExportDocx(user)) {
+    const activeOrganization = await getActiveOrganization(user.id);
+
+    if (format === "docx" && !canExportDocx(user, activeOrganization)) {
       throw appApiError(
         "PLAN_FEATURE_UNAVAILABLE",
         "Download DOCX chỉ có trên plan Pro. Nâng cấp để sử dụng tính năng này.",

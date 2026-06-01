@@ -14,6 +14,7 @@ export type ActionItemPriority = (typeof ACTION_ITEM_PRIORITIES)[number];
 export type ActionItemCreatePayload = {
   meetingNoteId: string;
   userId: string;
+  organizationId?: string | null;
   task: string;
   owner: string;
   deadline: string;
@@ -25,6 +26,7 @@ export type ActionItemCreatePayload = {
 export type DecisionCreatePayload = {
   meetingNoteId: string;
   userId: string;
+  organizationId?: string | null;
   content: string;
 };
 
@@ -40,6 +42,7 @@ export type DigestActionItem = {
   status: string;
   owner: string;
   deadline: string;
+  organizationId?: string | null;
 };
 
 const fallback = "Chưa xác định";
@@ -56,16 +59,19 @@ export function buildActionItemCreatePayloads({
   notes,
   meetingNoteId,
   userId,
+  organizationId,
 }: {
   notes: VietnameseMeetingNotes;
   meetingNoteId: string;
   userId: string;
+  organizationId?: string | null;
 }): ActionItemCreatePayload[] {
   return notes.actionItems
     .filter((item) => !isPlaceholderOnlyActionItem(item))
     .map((item) => ({
       meetingNoteId,
       userId,
+      organizationId,
       task: textOrFallback(item.task),
       owner: textOrFallback(item.owner),
       deadline: textOrFallback(item.deadline),
@@ -79,10 +85,12 @@ export function buildDecisionCreatePayloads({
   notes,
   meetingNoteId,
   userId,
+  organizationId,
 }: {
   notes: VietnameseMeetingNotes;
   meetingNoteId: string;
   userId: string;
+  organizationId?: string | null;
 }): DecisionCreatePayload[] {
   return notes.decisions
     .map((content) => content.trim())
@@ -90,6 +98,7 @@ export function buildDecisionCreatePayloads({
     .map((content) => ({
       meetingNoteId,
       userId,
+      organizationId,
       content,
     }));
 }
@@ -131,13 +140,17 @@ export function normalizeActionItemUpdate(
 export function computeManagerDigest(
   actionItems: DigestActionItem[],
   now = new Date(),
+  organizationId?: string | null,
 ) {
-  const total = actionItems.length;
-  const done = actionItems.filter((item) => item.status === "done").length;
-  const blocked = actionItems.filter((item) => item.status === "blocked").length;
-  const open = actionItems.filter((item) => item.status !== "done").length;
-  const withoutOwner = actionItems.filter((item) => isMissing(item.owner)).length;
-  const clearlyOverdue = actionItems.filter(
+  const scopedActionItems = organizationId
+    ? actionItems.filter((item) => item.organizationId === organizationId)
+    : actionItems;
+  const total = scopedActionItems.length;
+  const done = scopedActionItems.filter((item) => item.status === "done").length;
+  const blocked = scopedActionItems.filter((item) => item.status === "blocked").length;
+  const open = scopedActionItems.filter((item) => item.status !== "done").length;
+  const withoutOwner = scopedActionItems.filter((item) => isMissing(item.owner)).length;
+  const clearlyOverdue = scopedActionItems.filter(
     (item) => item.status !== "done" && isClearlyOverdue(item.deadline, now),
   ).length;
 

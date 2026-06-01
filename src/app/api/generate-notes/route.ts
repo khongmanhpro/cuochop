@@ -8,6 +8,7 @@ import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
 import { cleanupOldUploadsSafely } from "@/lib/upload-server";
 import { getSession } from "@/lib/session";
 import { canGenerate } from "@/lib/plans";
+import { getActiveOrganization } from "@/lib/organizations";
 import { prisma } from "@/lib/db";
 import {
   buildActionItemCreatePayloads,
@@ -23,7 +24,9 @@ export async function POST(request: Request) {
       throw appApiError("UNAUTHENTICATED", "Bạn cần đăng nhập để sử dụng tính năng này.", 401);
     }
 
-    if (!canGenerate(user)) {
+    const activeOrganization = await getActiveOrganization(user.id);
+
+    if (!canGenerate(user, activeOrganization)) {
       throw appApiError(
         "PLAN_LIMIT_EXCEEDED",
         `Bạn đã dùng hết ${user.usageThisMonth} lần miễn phí tháng này. Nâng cấp Pro để tiếp tục.`,
@@ -84,6 +87,7 @@ export async function POST(request: Request) {
     const meetingNote = await prisma.meetingNote.create({
       data: {
         userId: user.id,
+        organizationId: activeOrganization?.id,
         title: notes.title || originalName || "Meeting Notes",
         audioName: originalName || "unknown",
         notesJson: JSON.stringify(notes),
@@ -96,11 +100,13 @@ export async function POST(request: Request) {
         notes,
         meetingNoteId: meetingNote.id,
         userId: user.id,
+        organizationId: activeOrganization?.id,
       });
       const decisions = buildDecisionCreatePayloads({
         notes,
         meetingNoteId: meetingNote.id,
         userId: user.id,
+        organizationId: activeOrganization?.id,
       });
 
       if (actionItems.length > 0) {

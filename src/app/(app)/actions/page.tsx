@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ActionsBoard, type ActionBoardItem, type DecisionLogItem } from "./actions-board";
 import { prisma } from "@/lib/db";
 import { canViewHistory } from "@/lib/plans";
+import { getActiveOrganization } from "@/lib/organizations";
 import { getSession } from "@/lib/session";
 
 type RawActionItem = {
@@ -17,6 +18,10 @@ type RawActionItem = {
   meetingNote: {
     title: string;
     audioName: string;
+    user: {
+      email: string;
+      name: string | null;
+    };
   };
 };
 
@@ -26,14 +31,25 @@ type RawDecision = {
   createdAt: Date;
   meetingNote: {
     title: string;
+    user: {
+      email: string;
+      name: string | null;
+    };
   };
 };
 
-export default async function ActionsPage() {
+export default async function ActionsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ filter?: string }>;
+}) {
   const user = await getSession();
   if (!user) redirect("/auth/login");
+  const params = searchParams ? await searchParams : {};
 
-  if (!canViewHistory(user)) {
+  const activeOrganization = await getActiveOrganization(user.id);
+
+  if (!canViewHistory(user, activeOrganization)) {
     return (
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-8">
@@ -65,12 +81,20 @@ export default async function ActionsPage() {
 
   const [actionItems, decisions] = await Promise.all([
     prisma.actionItem.findMany({
-      where: { userId: user.id },
+      where: activeOrganization
+        ? { organizationId: activeOrganization.id }
+        : { userId: user.id },
       include: {
         meetingNote: {
           select: {
             title: true,
             audioName: true,
+            user: {
+              select: {
+                email: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -78,11 +102,19 @@ export default async function ActionsPage() {
       take: 200,
     }),
     prisma.decision.findMany({
-      where: { userId: user.id },
+      where: activeOrganization
+        ? { organizationId: activeOrganization.id }
+        : { userId: user.id },
       include: {
         meetingNote: {
           select: {
             title: true,
+            user: {
+              select: {
+                email: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -102,6 +134,7 @@ export default async function ActionsPage() {
     createdAt: item.createdAt.toISOString(),
     meetingTitle: item.meetingNote.title,
     audioName: item.meetingNote.audioName,
+    createdBy: item.meetingNote.user.name || item.meetingNote.user.email,
   }));
 
   const decisionItems: DecisionLogItem[] = (decisions as RawDecision[]).map(
@@ -110,6 +143,7 @@ export default async function ActionsPage() {
       content: decision.content,
       createdAt: decision.createdAt.toISOString(),
       meetingTitle: decision.meetingNote.title,
+      createdBy: decision.meetingNote.user.name || decision.meetingNote.user.email,
     }),
   );
 
@@ -134,7 +168,11 @@ export default async function ActionsPage() {
           New Meeting
         </Link>
       </div>
-      <ActionsBoard initialItems={items} decisions={decisionItems} />
+      <ActionsBoard
+        initialItems={items}
+        decisions={decisionItems}
+        initialDeadlineFilter={params.filter === "deadlines"}
+      />
     </main>
   );
 }

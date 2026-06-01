@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { canViewHistory } from "@/lib/plans";
+import { getActiveOrganization } from "@/lib/organizations";
 import { prisma } from "@/lib/db";
 import type { MeetingNoteModel } from "@/generated/prisma/models";
 import type { VietnameseMeetingNotes } from "@/lib/gemini";
@@ -10,7 +11,9 @@ export default async function HistoryPage() {
   const user = await getSession();
   if (!user) redirect("/auth/login");
 
-  if (!canViewHistory(user)) {
+  const activeOrganization = await getActiveOrganization(user.id);
+
+  if (!canViewHistory(user, activeOrganization)) {
     return (
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center">

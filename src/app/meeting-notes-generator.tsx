@@ -16,7 +16,6 @@ import { generateNotesForTranscript } from "@/lib/notes-client";
 import { transcribeUploadedFile } from "@/lib/transcribe-client";
 import {
   type CompleteUploadResponse,
-  createClientUploadId,
   uploadFileInChunks,
   validateClientFile,
 } from "@/lib/upload-client";
@@ -148,7 +147,6 @@ export function MeetingNotesGenerator() {
 
       const result = await uploadFileInChunks({
         file: selectedFile,
-        uploadId: createClientUploadId(),
         onProgress: (progress) => {
           setUploadProgress(progress.percent);
           setUploadedChunks(progress.uploadedChunks);

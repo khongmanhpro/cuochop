@@ -32,6 +32,7 @@ model User {
   decisions           Decision[]
   memberships         Membership[]
   notifications       Notification[]
+  uploads             Upload[]
 }
 
 model Organization {
@@ -186,6 +187,25 @@ model Notification {
 
   @@index([userId, read])
   @@index([createdAt])
+}
+
+model Upload {
+  id             String   @id
+  userId         String
+  originalName   String
+  storedPath     String?
+  sizeBytes      Int?
+  totalChunks    Int
+  uploadedChunks Int      @default(0)
+  status         String   @default("pending")
+  errorCode      String?
+  errorMessage   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, updatedAt])
 }
 
 model DecisionConflict {

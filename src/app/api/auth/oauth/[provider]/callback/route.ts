@@ -5,11 +5,15 @@ import { createSession, getSession } from "@/lib/session";
 import {
   createPendingOAuthLinkToken,
   createUnusablePasswordHash,
+  buildOAuthRedirectUri,
   exchangeOAuthCode,
   fetchOAuthProfile,
+  getMissingOAuthEnv,
   getOAuthProviderConfig,
-  parseOAuthState,
+  OAUTH_STATE_COOKIE,
   PENDING_OAUTH_LINK_COOKIE,
+  verifyOAuthState,
+  type OAuthProfile,
 } from "@/lib/oauth";
 
 export const runtime = "nodejs";
@@ -20,28 +24,63 @@ export async function GET(
 ) {
   const { provider: rawProvider } = await params;
   const config = getOAuthProviderConfig(rawProvider);
+  if (getMissingOAuthEnv(config.provider).length > 0) {
+    redirect(`/auth/login?oauth=config_missing&provider=${config.provider}`);
+  }
+
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
   if (!code || !state) redirect("/auth/login?oauth=missing_code");
 
-  const parsedState = parseOAuthState(state);
-  if (parsedState.provider !== config.provider) {
+  const cookieStore = await cookies();
+  const stateNonce = cookieStore.get(OAUTH_STATE_COOKIE)?.value;
+  cookieStore.delete(OAUTH_STATE_COOKIE);
+
+  let parsedState: { provider: "google" | "microsoft"; nonce: string } | null = null;
+  let invalidState = false;
+  try {
+    parsedState = verifyOAuthState(state, stateNonce);
+  } catch {
+    invalidState = true;
+  }
+
+  if (invalidState || parsedState?.provider !== config.provider) {
     redirect("/auth/login?oauth=invalid_state");
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? url.origin;
-  const redirectUri = `${baseUrl}/api/auth/oauth/${config.provider}/callback`;
-  const accessToken = await exchangeOAuthCode({
-    provider: config.provider,
-    code,
-    redirectUri,
-  });
-  const profile = await fetchOAuthProfile({
-    provider: config.provider,
-    accessToken,
-  });
+  const redirectUri = buildOAuthRedirectUri(baseUrl, config.provider);
+  let accessToken: string | null = null;
+  let oauthError: string | null = null;
+  try {
+    accessToken = await exchangeOAuthCode({
+      provider: config.provider,
+      code,
+      redirectUri,
+    });
+  } catch {
+    oauthError = "token_exchange_failed";
+  }
+
+  if (oauthError || !accessToken) {
+    redirect(`/auth/login?oauth=${oauthError ?? "token_exchange_failed"}`);
+  }
+
+  let profile: OAuthProfile | null = null;
+  try {
+    profile = await fetchOAuthProfile({
+      provider: config.provider,
+      accessToken,
+    });
+  } catch {
+    oauthError = "profile_failed";
+  }
+
+  if (oauthError || !profile) {
+    redirect(`/auth/login?oauth=${oauthError ?? "profile_failed"}`);
+  }
 
   if (!profile.emailVerified) {
     redirect("/auth/login?oauth=email_unverified");
@@ -89,7 +128,6 @@ export async function GET(
   }
 
   if (existingUser?.passwordAuthEnabled) {
-    const cookieStore = await cookies();
     cookieStore.set(
       PENDING_OAUTH_LINK_COOKIE,
       createPendingOAuthLinkToken({

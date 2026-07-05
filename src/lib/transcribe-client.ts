@@ -26,8 +26,6 @@ export async function transcribeUploadedFile({
     },
     body: JSON.stringify({
       uploadId: upload.uploadId,
-      originalName: upload.originalName,
-      storedPath: upload.storedPath,
       transcriptionModel,
     }),
   });

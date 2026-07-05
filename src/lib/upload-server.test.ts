@@ -80,6 +80,34 @@ describe("upload server helpers", () => {
     }
   });
 
+  test("merges many chunks without closing the output stream early", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "upload-test-"));
+    const uploadId = safeUploadId;
+    const chunks = Array.from({ length: 12 }, (_, index) => `chunk-${index};`);
+
+    try {
+      await mkdir(path.join(root, uploadId, "chunks"), { recursive: true });
+      await Promise.all(
+        chunks.map((content, index) =>
+          writeFile(buildChunkPath(root, uploadId, index), content),
+        ),
+      );
+
+      const result = await mergeChunksToFinalFile({
+        uploadRoot: root,
+        uploadId,
+        originalName: "many-chunks.m4a",
+        totalChunks: chunks.length,
+      });
+
+      await expect(readFile(result.storedPath, "utf8")).resolves.toBe(
+        chunks.join(""),
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   test("rejects completed uploads above one gigabyte", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "upload-test-"));
     const uploadId = safeUploadId;

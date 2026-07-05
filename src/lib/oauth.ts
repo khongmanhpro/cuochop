@@ -19,6 +19,8 @@ export type PendingOAuthLink = {
   expiresAt: number;
 };
 
+export const OAUTH_STATE_COOKIE = "cuochop_oauth_state";
+export const OAUTH_STATE_MAX_AGE_SECONDS = 10 * 60;
 export const PENDING_OAUTH_LINK_COOKIE = "cuochop_pending_oauth_link";
 
 type OAuthProviderConfig = {
@@ -60,12 +62,25 @@ export function getOAuthProviderConfig(provider: string): OAuthProviderConfig {
   throw new Error("Unsupported OAuth provider.");
 }
 
+export function getMissingOAuthEnv(provider: OAuthProvider) {
+  const config = getOAuthProviderConfig(provider);
+  return ["SESSION_SECRET", config.clientIdEnv, config.clientSecretEnv].filter(
+    (name) => !process.env[name],
+  );
+}
+
+export function buildOAuthRedirectUri(baseUrl: string, provider: OAuthProvider) {
+  return `${baseUrl.replace(/\/+$/, "")}/api/auth/oauth/${provider}/callback`;
+}
+
 export function buildOAuthAuthorizationUrl({
   provider,
   redirectUri,
+  stateNonce,
 }: {
   provider: OAuthProvider;
   redirectUri: string;
+  stateNonce: string;
 }) {
   const config = getOAuthProviderConfig(provider);
   const params = new URLSearchParams({
@@ -73,7 +88,7 @@ export function buildOAuthAuthorizationUrl({
     redirect_uri: redirectUri,
     response_type: "code",
     scope: config.scopes.join(" "),
-    state: createOAuthState({ provider }),
+    state: createOAuthState({ provider, nonce: stateNonce }),
   });
 
   if (provider === "google") {
@@ -84,25 +99,53 @@ export function buildOAuthAuthorizationUrl({
   return `${config.authorizationUrl}?${params.toString()}`;
 }
 
-export function createOAuthState({ provider }: { provider: OAuthProvider }) {
+export function createOAuthStateNonce() {
+  return randomBytes(16).toString("base64url");
+}
+
+export function createOAuthState({
+  provider,
+  nonce,
+}: {
+  provider: OAuthProvider;
+  nonce: string;
+}) {
+  if (!nonce) throw new Error("OAuth state nonce is required.");
+
   const payload = Buffer.from(
-    JSON.stringify({ provider, nonce: randomBytes(12).toString("base64url") }),
+    JSON.stringify({ provider, nonce }),
     "utf8",
   ).toString("base64url");
   return `${payload}.${sign(payload)}`;
 }
 
-export function parseOAuthState(state: string) {
+export function parseOAuthState(state: string): { provider: OAuthProvider; nonce: string } {
   const payload = verifySignedPayload(state);
   const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
     provider?: unknown;
+    nonce?: unknown;
   };
 
-  if (parsed.provider !== "google" && parsed.provider !== "microsoft") {
+  if (
+    (parsed.provider !== "google" && parsed.provider !== "microsoft") ||
+    typeof parsed.nonce !== "string" ||
+    !parsed.nonce
+  ) {
     throw new Error("Invalid OAuth state.");
   }
 
-  return { provider: parsed.provider };
+  return { provider: parsed.provider, nonce: parsed.nonce };
+}
+
+export function verifyOAuthState(state: string, expectedNonce: string | undefined) {
+  if (!expectedNonce) throw new Error("Missing OAuth state cookie.");
+
+  const parsed = parseOAuthState(state);
+  if (parsed.nonce !== expectedNonce) {
+    throw new Error("OAuth state nonce mismatch.");
+  }
+
+  return parsed;
 }
 
 export function createPendingOAuthLinkToken({

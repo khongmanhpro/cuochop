@@ -2,7 +2,8 @@ import { createReadStream, createWriteStream } from "node:fs";
 import { access, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { pipeline } from "node:stream/promises";
+import type { Writable } from "node:stream";
+import { finished } from "node:stream/promises";
 import { appApiError } from "./api-errors";
 
 export const CHUNK_SIZE_BYTES = 10 * 1024 * 1024;
@@ -162,6 +163,23 @@ export async function cleanupOldUploadsSafely({
   }
 }
 
+export async function countSavedChunks({
+  uploadRoot = UPLOAD_ROOT,
+  uploadId,
+}: {
+  uploadRoot?: string;
+  uploadId: string;
+}) {
+  assertSafeUploadId(uploadId);
+
+  const chunkDirectory = path.join(uploadRoot, uploadId, "chunks");
+  const entries = await readdir(chunkDirectory, { withFileTypes: true }).catch(
+    () => [],
+  );
+
+  return entries.filter((entry) => entry.isFile()).length;
+}
+
 export async function saveChunk({
   uploadRoot = UPLOAD_ROOT,
   uploadId,
@@ -246,11 +264,13 @@ export async function mergeChunksToFinalFile({
 
   try {
     for (const chunkPath of chunkPaths) {
-      await pipeline(createReadStream(chunkPath), output, { end: false });
+      await appendFileToStream(chunkPath, output);
     }
   } finally {
     output.end();
   }
+
+  await finished(output);
 
   return {
     uploadId,
@@ -259,6 +279,40 @@ export async function mergeChunksToFinalFile({
     sizeBytes,
     totalChunks,
   };
+}
+
+async function appendFileToStream(filePath: string, output: Writable) {
+  const input = createReadStream(filePath);
+
+  try {
+    for await (const chunk of input) {
+      if (!output.write(chunk)) {
+        await onceDrain(output);
+      }
+    }
+  } finally {
+    input.destroy();
+  }
+}
+
+function onceDrain(output: Writable) {
+  return new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      output.off("drain", onDrain);
+      output.off("error", onError);
+    };
+    const onDrain = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+
+    output.once("drain", onDrain);
+    output.once("error", onError);
+  });
 }
 
 export function parseRequiredString(value: FormDataEntryValue | null, name: string) {

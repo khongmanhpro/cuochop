@@ -13,7 +13,7 @@ function getSecret() {
 const PROTECTED_PATHS = ["/app", "/actions", "/history"];
 const AUTH_PATHS = ["/auth/login", "/auth/signup"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));

@@ -17,6 +17,7 @@ export default function LoginPage({
   );
   const params = use(searchParams ?? Promise.resolve({} as LoginSearchParams));
   const linkProvider = formatProvider(params.link);
+  const oauthMessage = formatOAuthMessage(params.oauth);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#eef3f8] px-4">
@@ -37,6 +38,12 @@ export default function LoginPage({
         {linkProvider ? (
           <p className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
             Nhập mật khẩu cho {params.email} để liên kết tài khoản {linkProvider}.
+          </p>
+        ) : null}
+
+        {oauthMessage ? (
+          <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {oauthMessage}
           </p>
         ) : null}
 
@@ -118,5 +125,17 @@ function OAuthButtons() {
 function formatProvider(value?: string) {
   if (value === "google") return "Google";
   if (value === "microsoft") return "Microsoft";
+  return null;
+}
+
+function formatOAuthMessage(value?: string) {
+  if (value === "config_missing") {
+    return "Đăng nhập OAuth chưa được cấu hình. Vui lòng kiểm tra Client ID và Client Secret.";
+  }
+  if (value === "missing_code") return "Không nhận được mã xác thực từ nhà cung cấp.";
+  if (value === "invalid_state") return "Phiên đăng nhập OAuth không hợp lệ.";
+  if (value === "token_exchange_failed") return "Không đổi được mã xác thực OAuth.";
+  if (value === "profile_failed") return "Không lấy được thông tin tài khoản OAuth.";
+  if (value === "email_unverified") return "Email OAuth chưa được xác minh.";
   return null;
 }

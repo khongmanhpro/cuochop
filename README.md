@@ -1,20 +1,25 @@
-# Vietnamese Meeting Notes Generator
+# Cuochop
 
-Web app tạo meeting notes tiếng Việt từ file audio/video cuộc họp. MVP hiện tại hỗ trợ upload local theo chunk, Gemini transcription, Gemini notes generation, Copy Markdown và Download `.md`.
+Cuochop is a Vietnamese meeting-notes app built with Next.js 16, Prisma, SQLite, and Gemini. It supports chunked audio/video uploads, transcription, structured meeting notes, action tracking, search, exports, auth, billing, team workspaces, Slack integration, and scheduled reminders.
 
-## Tính năng MVP
+## Features
 
-- Upload file `.mp3`, `.mp4`, `.wav`, `.m4a` tối đa 1GB.
-- Chia file thành chunk 10MB ở client, lưu tạm local trong `tmp/uploads`.
-- Transcribe tiếng Việt bằng Gemini với timestamp và speaker labels tương đối.
-- Tạo notes tiếng Việt gồm tóm tắt, overview, nội dung chính, decisions, action items, risks/blockers, open questions và transcript.
-- Copy Markdown và download file `.md`.
-- Error states có mã lỗi rõ ràng cho upload, transcription và notes generation.
+- Upload `.mp3`, `.mp4`, `.wav`, and `.m4a` files in client-side chunks.
+- Transcribe Vietnamese meetings with Gemini.
+- Generate structured notes with summaries, decisions, action items, risks, open questions, and transcript.
+- Save meeting history and export notes as Markdown, DOCX, or organization data.
+- Track action items, owners, deadlines, reminders, and notifications.
+- Search meeting notes and decisions.
+- Email/password auth plus Google and Microsoft OAuth.
+- LemonSqueezy billing for Pro and Business plans.
+- Slack integration for team notifications and deadline reminders.
+- Cron endpoints for weekly digests and deadline reminders.
 
 ## Requirements
 
-- Node.js tương thích Next.js 16.
-- pnpm.
+- Node.js compatible with Next.js 16.
+- pnpm `10.32.1`.
+- SQLite-compatible filesystem persistence for `data/`.
 - Gemini API key.
 
 ## Install
@@ -23,15 +28,45 @@ Web app tạo meeting notes tiếng Việt từ file audio/video cuộc họp. M
 pnpm install
 ```
 
-## Env
+## Environment
 
-Tạo `.env.local`:
+Create `.env.local` from `.env.example`:
+
+```bash
+cp .env.example .env.local
+```
+
+Required for the core meeting-notes flow:
 
 ```bash
 GEMINI_API_KEY=
+DATABASE_URL=file:./data/cuochop.db
+SESSION_SECRET=replace_with_at_least_32_random_characters
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 
-Không commit `.env.local` hoặc secret.
+Production and optional integrations:
+
+```bash
+LEMONSQUEEZY_API_KEY=
+LEMONSQUEEZY_STORE_ID=
+LEMONSQUEEZY_VARIANT_ID=
+LEMONSQUEEZY_BUSINESS_VARIANT_ID=
+LEMONSQUEEZY_WEBHOOK_SECRET=
+RESEND_API_KEY=
+EMAIL_FROM_ADDRESS=
+CRON_SECRET=
+SLACK_CLIENT_ID=
+SLACK_CLIENT_SECRET=
+SLACK_SIGNING_SECRET=
+SLACK_TOKEN_ENCRYPTION_KEY=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+```
+
+Do not commit `.env.local` or real secrets.
 
 ## Run Dev
 
@@ -39,53 +74,89 @@ Không commit `.env.local` hoặc secret.
 pnpm dev
 ```
 
-Mở [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000).
 
-## Build
+## Build And Test
 
 ```bash
+pnpm test
 pnpm build
 ```
 
 ## Run With Docker
 
-Build and start the app in a container with your local `.env.local`:
+Build and start the app with `.env.local`:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-The app will be available at [http://localhost:3000](http://localhost:3000). Uploads are persisted in `tmp/uploads` on the host so they survive container restarts.
+The app listens on [http://localhost:3000](http://localhost:3000). Docker uses `DATABASE_URL=file:/app/data/cuochop.db` and persists uploads in `tmp/uploads` and the SQLite database in `data/`.
 
-## Test End-to-End
+Useful Docker checks:
 
-1. Thêm `GEMINI_API_KEY` vào `.env.local`.
-2. Restart dev server nếu đang chạy.
-3. Mở app ở `http://localhost:3000`.
-4. Chọn file MP3/MP4/WAV/M4A tiếng Việt.
-5. Chọn transcription model và notes generation model.
-6. Bấm `Generate Meeting Notes`.
-7. Kiểm tra progress upload, transcription, notes generation.
-8. Copy Markdown hoặc download `.md`.
+```bash
+docker compose ps
+docker compose logs --tail=120 app
+```
 
-## API
+## OAuth Setup
 
-- `POST /api/upload-chunk`: nhận một chunk và lưu vào `tmp/uploads/<uploadId>/chunks/<chunkIndex>`.
-- `POST /api/complete-upload`: ghép chunk thành file cuối trong `tmp/uploads/<uploadId>/final/<safeFilename>`.
-- `POST /api/transcribe`: gọi Gemini Files API và transcription model.
-- `POST /api/generate-notes`: gọi Gemini notes model và trả về notes JSON + Markdown.
+Set `NEXT_PUBLIC_BASE_URL` to the public app URL in production. Configure provider callback URLs:
+
+- Google: `https://yourdomain.com/api/auth/oauth/google/callback`
+- Microsoft: `https://yourdomain.com/api/auth/oauth/microsoft/callback`
+
+OAuth state is bound to a short-lived `httpOnly` cookie. `SESSION_SECRET` must be stable across deploys and at least 32 characters.
+
+## Cron Setup
+
+Set `CRON_SECRET`, then call cron endpoints with:
+
+```text
+Authorization: Bearer <CRON_SECRET>
+```
+
+Endpoints:
+
+- `POST /api/cron/weekly-digest`
+- `POST /api/cron/deadline-reminders`
+
+## API Overview
+
+- `POST /api/upload-chunk`: store upload chunks in `tmp/uploads`.
+- `POST /api/uploads`: create a server-owned upload record and return an upload ID.
+- `POST /api/complete-upload`: assemble chunks into the final uploaded file.
+- `POST /api/transcribe`: call Gemini transcription for an uploaded file by upload ID.
+- `POST /api/generate-notes`: generate notes JSON and Markdown.
+- `POST /api/export-notes`: export a meeting note.
+- `POST /api/export`: export organization data.
+- `GET /api/search`: search saved content.
+- `POST /api/billing/checkout`: create a LemonSqueezy checkout.
+- `POST /api/webhooks/lemonsqueezy`: process signed LemonSqueezy webhooks.
+- `GET /api/auth/oauth/[provider]`: start Google or Microsoft OAuth.
+- `GET /api/auth/oauth/[provider]/callback`: handle OAuth callback.
+
+## Production Checklist
+
+- Generate a strong `SESSION_SECRET` with at least 32 characters.
+- Set `NEXT_PUBLIC_BASE_URL` to the exact production origin.
+- Configure Google and Microsoft OAuth callback URLs if OAuth is enabled.
+- Configure LemonSqueezy webhook signing secret before enabling billing webhooks.
+- Configure `RESEND_API_KEY` and `EMAIL_FROM_ADDRESS` before enabling email digests/reminders.
+- Configure `SLACK_TOKEN_ENCRYPTION_KEY` as 32 bytes or base64-encoded 32 bytes before enabling Slack.
+- Protect cron invocations with `CRON_SECRET`.
+- Persist `data/` and `tmp/uploads/` when running Docker.
+- Back up SQLite before deploys or migrations:
+  ```bash
+  mkdir -p backups
+  cp data/cuochop.db backups/cuochop-$(date +%Y%m%d-%H%M).db
+  ```
+- Run `pnpm test` and `pnpm build` before deploy.
 
 ## Known Limitations
 
-- Upload local temp không phù hợp production serverless lớn.
-- File lớn trong production nên dùng S3/GCS signed URL.
-- Speaker labels là tương đối nếu audio không có metadata người nói.
-- Gemini JSON có thể cần fallback parser khi model trả text không đúng schema.
-- DOCX export chưa được implement.
-
-## Next Steps
-
-- DOCX export.
-- Cloud storage.
-- Auth/history.
-- Background jobs/queue.
+- Local chunked uploads are not suitable for serverless file storage. Use S3 or GCS signed URLs for large production deployments.
+- Gemini transcript speaker labels are approximate when audio has no speaker metadata.
+- Gemini JSON responses may need fallback parsing if a model returns text outside the expected schema.
+- Authentication redirects use the Next.js 16 `proxy.ts` convention. Keep authorization checks inside server actions and route handlers for sensitive operations.

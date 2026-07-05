@@ -19,6 +19,15 @@ export type CompleteUploadResponse = {
   totalChunks: number;
 };
 
+export type BeginUploadResponse = {
+  ok?: true;
+  uploadId: string;
+  originalName: string;
+  totalChunks: number;
+  uploadedChunks: number;
+  status: string;
+};
+
 export function createClientUploadId() {
   const uuid = globalThis.crypto?.randomUUID?.() ?? createFallbackUuid();
   return `upload_${uuid}`;
@@ -62,16 +71,19 @@ export function validateClientFile(file: File) {
 
 export async function uploadFileInChunks({
   file,
-  uploadId,
   chunkSizeBytes = CLIENT_CHUNK_SIZE_BYTES,
   onProgress,
 }: {
   file: File;
-  uploadId: string;
   chunkSizeBytes?: number;
   onProgress: (progress: UploadProgress) => void;
 }) {
   const totalChunks = Math.max(1, Math.ceil(file.size / chunkSizeBytes));
+  const upload = await beginUpload({
+    originalName: file.name,
+    totalChunks,
+  });
+  const uploadId = upload.uploadId;
 
   for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
     const start = chunkIndex * chunkSizeBytes;
@@ -101,8 +113,6 @@ export async function uploadFileInChunks({
     },
     body: JSON.stringify({
       uploadId,
-      originalName: file.name,
-      totalChunks,
     }),
   });
 
@@ -118,6 +128,31 @@ export async function uploadFileInChunks({
     sizeBytes: body.sizeBytes,
     totalChunks: body.totalChunks,
   };
+}
+
+async function beginUpload({
+  originalName,
+  totalChunks,
+}: {
+  originalName: string;
+  totalChunks: number;
+}) {
+  const response = await fetch("/api/uploads", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      originalName,
+      totalChunks,
+    }),
+  });
+
+  if (!response.ok) {
+    throw await readApiError(response, "Không thể bắt đầu upload.");
+  }
+
+  return (await response.json()) as BeginUploadResponse;
 }
 
 async function uploadChunkWithRetry({

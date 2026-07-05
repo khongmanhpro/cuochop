@@ -1,17 +1,25 @@
 import {
   cleanupOldUploadsSafely,
   mergeChunksToFinalFile,
-  parseRequiredInteger,
   parseRequiredString,
 } from "@/lib/upload-server";
-import { createApiErrorResponse } from "@/lib/api-errors";
+import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
+import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   let uploadId: string | undefined;
+  let userId: string | undefined;
 
   try {
+    const user = await getSession();
+    if (!user) {
+      throw appApiError("UNAUTHENTICATED", "Bạn cần đăng nhập để hoàn tất upload.", 401);
+    }
+    userId = user.id;
+
     await cleanupOldUploadsSafely({ route: "/api/complete-upload" });
 
     const body: unknown = await request.json();
@@ -20,19 +28,43 @@ export async function POST(request: Request) {
       normalizeString(payload.uploadId),
       "uploadId",
     );
-    const originalName = parseRequiredString(
-      normalizeString(payload.originalName),
-      "originalName",
-    );
-    const totalChunks = parseRequiredInteger(
-      normalizeString(payload.totalChunks),
-      "totalChunks",
-    );
+    const upload = await prisma.upload.findFirst({
+      where: { id: uploadId, userId: user.id },
+    });
+    if (!upload) {
+      throw appApiError(
+        "MISSING_UPLOAD_ID",
+        "Upload ID không hợp lệ hoặc bị thiếu.",
+        404,
+        "Upload does not belong to the current user.",
+      );
+    }
+    if (upload.status === "completed") {
+      return Response.json({
+        ok: true,
+        uploadId: upload.id,
+        originalName: upload.originalName,
+        storedPath: upload.storedPath,
+        sizeBytes: upload.sizeBytes,
+        totalChunks: upload.totalChunks,
+      });
+    }
 
     const result = await mergeChunksToFinalFile({
       uploadId,
-      originalName,
-      totalChunks,
+      originalName: upload.originalName,
+      totalChunks: upload.totalChunks,
+    });
+    await prisma.upload.update({
+      where: { id: upload.id },
+      data: {
+        status: "completed",
+        storedPath: result.storedPath,
+        sizeBytes: result.sizeBytes,
+        uploadedChunks: result.totalChunks,
+        errorCode: null,
+        errorMessage: null,
+      },
     });
 
     return Response.json({
@@ -40,6 +72,20 @@ export async function POST(request: Request) {
       ...result,
     });
   } catch (error) {
+    if (uploadId && userId) {
+      await prisma.upload.updateMany({
+        where: { id: uploadId, userId },
+        data: {
+          status: "failed",
+          errorCode:
+            error instanceof Error && "code" in error
+              ? String(error.code)
+              : "COMPLETE_UPLOAD_FAILED",
+          errorMessage:
+            error instanceof Error ? error.message : "Complete upload failed.",
+        },
+      });
+    }
     return createApiErrorResponse(error, {
       route: "/api/complete-upload",
       uploadId,
@@ -50,9 +96,5 @@ export async function POST(request: Request) {
 }
 
 function normalizeString(value: unknown) {
-  if (typeof value === "number") {
-    return String(value);
-  }
-
   return typeof value === "string" ? value : null;
 }

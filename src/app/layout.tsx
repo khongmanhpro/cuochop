@@ -15,8 +15,12 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vietnamese Meeting Notes Generator",
+  title: "cuochop — Vietnamese Meeting Notes",
   description: "Generate professional Vietnamese meeting notes from recordings.",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

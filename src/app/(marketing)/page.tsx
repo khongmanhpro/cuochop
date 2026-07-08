@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 
 const STEPS = [
   {
@@ -43,9 +44,7 @@ export default function LandingPage() {
       {/* Top nav — sticky white bar, hairline-soft bottom border */}
       <header className="sticky top-0 z-30 border-b border-hairline-soft bg-canvas">
         <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
-          <span className="text-[15px] font-semibold tracking-tight text-ink">
-            cuochop
-          </span>
+          <Logo width={120} height={32} className="shrink-0" />
           <div className="flex items-center gap-3">
             <Link
               href="/auth/login"
@@ -162,6 +161,7 @@ export default function LandingPage() {
       {/* Footer region — dense black canvas */}
       <footer className="bg-footer-bg px-6 py-[64px]">
         <div className="mx-auto max-w-[1280px]">
+          <Logo width={100} height={28} className="mb-4 invert" />
           <p className="text-[14px] text-muted">
             © 2026 cuochop. Vietnamese AI Workspace.
           </p>

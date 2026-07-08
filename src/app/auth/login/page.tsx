@@ -2,6 +2,7 @@
 
 import { use, useActionState } from "react";
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { login, type AuthFormState } from "@/app/actions/auth";
 
 type LoginSearchParams = { link?: string; email?: string; oauth?: string };
@@ -23,10 +24,8 @@ export default function LoginPage({
     <main className="flex min-h-screen items-center justify-center bg-surface px-6">
       <div className="w-full max-w-sm rounded-xl border border-hairline bg-canvas p-8">
         <div className="mb-8">
-          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
-            cuochop
-          </p>
-          <h1 className="mt-3 text-[24px] font-semibold leading-[1.30] text-ink">
+          <Logo width={120} height={32} className="mb-3" />
+          <h1 className="text-[24px] font-semibold leading-[1.30] text-ink">
             Đăng nhập
           </h1>
         </div>

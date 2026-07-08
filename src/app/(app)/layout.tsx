@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { logout } from "@/app/actions/auth";
 import { getUserOrganization } from "@/lib/organizations";
 import { prisma } from "@/lib/db";
+import { Logo } from "@/components/logo";
 import { NotificationBell } from "./notifications/notification-bell";
 import { GlobalSearch } from "@/components/global-search";
 import { AppNavTabs } from "./app-nav-tabs";
@@ -33,11 +34,8 @@ export default async function AppLayout({
       {/* Top nav — sticky white bar, hairline-soft bottom border */}
       <header className="sticky top-0 z-30 border-b border-hairline-soft bg-canvas">
         <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
-          <Link
-            href="/"
-            className="text-[15px] font-semibold tracking-tight text-ink"
-          >
-            cuochop
+          <Link href="/" className="shrink-0">
+            <Logo width={120} height={32} />
           </Link>
           <div className="flex items-center gap-3">
             <GlobalSearch />

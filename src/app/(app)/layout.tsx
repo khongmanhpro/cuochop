@@ -35,7 +35,7 @@ export default async function AppLayout({
       <header className="sticky top-0 z-30 border-b border-hairline-soft bg-canvas">
         <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
           <Link href="/" className="shrink-0">
-            <Logo width={120} height={32} />
+            <Logo width={160} height={42} />
           </Link>
           <div className="flex items-center gap-3">
             <GlobalSearch />

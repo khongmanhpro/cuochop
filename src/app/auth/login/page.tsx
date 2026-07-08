@@ -24,7 +24,7 @@ export default function LoginPage({
     <main className="flex min-h-screen items-center justify-center bg-surface px-6">
       <div className="w-full max-w-sm rounded-xl border border-hairline bg-canvas p-8">
         <div className="mb-8">
-          <Logo width={120} height={32} className="mb-3" />
+          <Logo width={160} height={42} className="mb-3" />
           <h1 className="text-[24px] font-semibold leading-[1.30] text-ink">
             Đăng nhập
           </h1>

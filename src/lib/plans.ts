@@ -1,6 +1,8 @@
 import type { SessionUser } from "./session";
 
-export const FREE_MONTHLY_LIMIT = 5;
+// Single-user mode: keep the legacy plan names for DB/backward compatibility,
+// but do not gate core utility behind Pro/Business or monthly quota.
+export const FREE_MONTHLY_LIMIT = Number.POSITIVE_INFINITY;
 
 export type PlanName = "free" | "pro" | "business";
 
@@ -22,9 +24,9 @@ export const FREE_PLAN: PlanLimit = {
   name: "free",
   monthlyGenerations: FREE_MONTHLY_LIMIT,
   features: {
-    docxExport: false,
-    history: false,
-    actionBoard: false,
+    docxExport: true,
+    history: true,
+    actionBoard: true,
     teamWorkspace: false,
     sharedActionBoard: false,
     teamManagerDigest: false,
@@ -85,40 +87,31 @@ function isActivePlan(
   return planExpiresAt > new Date();
 }
 
-function isActivePaidUser(user: SessionUser): boolean {
-  if (user.plan !== "pro" && user.plan !== "business") return false;
-  if (!user.planExpiresAt) return true;
-  return user.planExpiresAt > new Date();
-}
-
-function isActiveBusinessOrganization(
-  organization: ActiveOrganizationPlan | null = null,
-): boolean {
-  return organization
-    ? isActivePlan(organization.plan, organization.planExpiresAt, "business")
-    : false;
-}
-
 export function canGenerate(
   user: SessionUser,
   organization: ActiveOrganizationPlan | null = null,
 ): boolean {
-  if (isActiveBusinessOrganization(organization) || isActivePaidUser(user)) return true;
-  return user.usageThisMonth < FREE_MONTHLY_LIMIT;
+  void user;
+  void organization;
+  return true;
 }
 
 export function canExportDocx(
   user: SessionUser,
   organization: ActiveOrganizationPlan | null = null,
 ): boolean {
-  return isActiveBusinessOrganization(organization) || isActivePaidUser(user);
+  void user;
+  void organization;
+  return true;
 }
 
 export function canViewHistory(
   user: SessionUser,
   organization: ActiveOrganizationPlan | null = null,
 ): boolean {
-  return isActiveBusinessOrganization(organization) || isActivePaidUser(user);
+  void user;
+  void organization;
+  return true;
 }
 
 export function canManageTeam(user: SessionUser): boolean {

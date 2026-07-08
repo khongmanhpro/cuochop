@@ -16,7 +16,7 @@ export async function searchContent(
   orgId?: string | null,
 ): Promise<SearchResult[]> {
   const sanitized = sanitizeFtsQuery(query);
-  if (!sanitized) return [];
+  if (!sanitized || sanitized.length < 2) return [];
 
   const ftsQuery = `${sanitized}*`;
 
@@ -167,16 +167,30 @@ function buildScope(
     : `${tableName}.userId = '${escapeSql(userId)}'`;
 }
 
-function sanitizeFtsQuery(input: string): string {
+export function sanitizeFtsQuery(input: string): string {
   // Remove FTS5 special characters, keep alphanumeric and Vietnamese chars
-  return input
-    .replace(/['"()*:^~\-]/g, " ")
+  let cleaned = input
+    .replace(/['"()*:^~\-\\;<>|&={}[\]]/g, " ")
+    // Strip FTS5 boolean operators as whole words (case-insensitive)
+    .replace(/\b(?:OR|AND|NOT|NEAR)\b/gi, " ")
+    // Strip SQL comment markers
+    .replace(/--/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+  // FTS5 queries have a max term length of 32768 bytes; cap to be safe
+  if (cleaned.length > 1024) {
+    cleaned = cleaned.slice(0, 1024).trim();
+  }
+
+  return cleaned;
 }
 
-function escapeSql(value: string): string {
-  return value.replace(/'/g, "''");
+export function escapeSql(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "''")
+    .replace(/\x00/g, "");
 }
 
 function truncate(value: string, maxLen: number): string {

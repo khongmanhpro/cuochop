@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   buildFallbackMeetingNotes,
   buildFallbackTranscript,
+  extractJsonText,
   getGeminiApiKey,
   parseJsonFromModelResponse,
   parseNotesJsonFromModelResponse,
@@ -184,5 +185,186 @@ describe("Gemini notes helpers", () => {
       transcript,
       rawText: "raw notes text",
     });
+  });
+});
+
+describe("extractJsonText", () => {
+  test("extracts JSON from plain text", () => {
+    const text = 'Here is the result: {"key": "value"} done.';
+    expect(extractJsonText(text)).toBe('{"key": "value"}');
+  });
+
+  test("extracts JSON from markdown fence", () => {
+    const text = '```json\n{"key": "value"}\n```';
+    expect(extractJsonText(text)).toBe('{"key": "value"}');
+  });
+
+  test("extracts JSON from bare fence", () => {
+    const text = '```\n{"key": "value"}\n```';
+    expect(extractJsonText(text)).toBe('{"key": "value"}');
+  });
+
+  test("extracts nested JSON objects", () => {
+    const text = '{"outer": {"inner": "value"}}';
+    expect(extractJsonText(text)).toBe('{"outer": {"inner": "value"}}');
+  });
+
+  test("extracts JSON with arrays", () => {
+    const text = 'prefix {"items": [1, 2, 3]} suffix';
+    expect(extractJsonText(text)).toBe('{"items": [1, 2, 3]}');
+  });
+
+  test("returns empty string when no JSON found", () => {
+    expect(extractJsonText("no json here")).toBe("");
+  });
+
+  test("returns empty string for empty input", () => {
+    expect(extractJsonText("")).toBe("");
+  });
+
+  test("returns empty string for non-string input", () => {
+    expect(extractJsonText(null as unknown as string)).toBe("");
+  });
+
+  test("handles JSON with nested braces in strings", () => {
+    const text = '{"text": "value with } brace"}';
+    expect(extractJsonText(text)).toBe('{"text": "value with } brace"}');
+  });
+
+  test("handles multiple JSON blocks — takes outermost", () => {
+    const text = '{"a": 1} and {"b": 2}';
+    // First { to last } — captures both blocks
+    expect(extractJsonText(text)).toBe('{"a": 1} and {"b": 2}');
+  });
+});
+
+describe("parseJsonFromModelResponse — edge cases", () => {
+  const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+  test("returns fallback for empty response", () => {
+    const result = parseJsonFromModelResponse("");
+    expect(result.segments).toHaveLength(1);
+    expect(result.segments[0]?.text).toBe("[không nghe rõ]");
+    expect(consoleWarnSpy).toHaveBeenCalled();
+  });
+
+  test("returns fallback for pure prose without JSON", () => {
+    const result = parseJsonFromModelResponse("This is just text, no JSON.");
+    expect(result.segments[0]?.text).toBe("This is just text, no JSON.");
+    expect(consoleWarnSpy).toHaveBeenCalled();
+  });
+
+  test("returns fallback for malformed JSON", () => {
+    const result = parseJsonFromModelResponse('{"broken": "json"');
+    expect(result.segments[0]?.text).toContain("broken");
+    expect(consoleWarnSpy).toHaveBeenCalled();
+  });
+
+  test("returns fallback for JSON without segments array", () => {
+    const result = parseJsonFromModelResponse('{"language": "vi", "duration": "00:00:10"}');
+    expect(result.segments).toHaveLength(1);
+    expect(result.segments[0]?.text).toContain("language");
+  });
+
+  test("returns fallback for JSON with empty segments", () => {
+    const result = parseJsonFromModelResponse(
+      '{"language": "vi", "duration": "00:00:10", "speakers": [], "segments": []}',
+    );
+    expect(result.segments).toHaveLength(1);
+  });
+
+  test("parses JSON embedded in prose", () => {
+    const result = parseJsonFromModelResponse(
+      'Here is the transcript:\n{"language": "vi", "duration": "00:00:05", "speakers": ["Speaker 1"], "segments": [{"start": "00:00:00", "speaker": "Speaker 1", "text": "Hello"}]}\nDone.',
+    );
+    expect(result.segments).toHaveLength(1);
+    expect(result.segments[0]?.text).toBe("Hello");
+  });
+
+  test("normalizes missing speakers from segments", () => {
+    const result = parseJsonFromModelResponse(
+      '{"language": "vi", "duration": "00:00:05", "segments": [{"start": "00:00:00", "speaker": "Speaker 1", "text": "Hello"}, {"start": "00:00:05", "speaker": "Speaker 2", "text": "Hi"}]}',
+    );
+    expect(result.speakers).toEqual(["Speaker 1", "Speaker 2"]);
+  });
+
+  test("logs structured warning on parse failure", () => {
+    consoleWarnSpy.mockClear();
+    parseJsonFromModelResponse("not json at all");
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+    const logCall = consoleWarnSpy.mock.calls[0]?.[0] as string;
+    const parsed = JSON.parse(logCall);
+    expect(parsed.event).toBe("gemini_parse_failure");
+    expect(parsed.kind).toBe("transcript");
+    expect(parsed.reason).toBeDefined();
+    expect(parsed.rawResponseLength).toBe(15);
+  });
+});
+
+describe("parseNotesJsonFromModelResponse — edge cases", () => {
+  const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+  const transcript = {
+    language: "vi" as const,
+    duration: "00:10:00",
+    speakers: ["Speaker 1"],
+    segments: [
+      { start: "00:00:00", speaker: "Speaker 1", text: "Test" },
+    ],
+  };
+
+  test("returns fallback for empty response", () => {
+    const result = parseNotesJsonFromModelResponse("", transcript);
+    expect(result.title).toBe("Meeting Notes");
+    expect(result.executiveSummary).toEqual(["Chưa xác định"]);
+    expect(consoleWarnSpy).toHaveBeenCalled();
+  });
+
+  test("returns fallback for pure prose", () => {
+    const result = parseNotesJsonFromModelResponse("Just text, no JSON.", transcript);
+    expect(result.title).toBe("Meeting Notes");
+    expect(consoleWarnSpy).toHaveBeenCalled();
+  });
+
+  test("returns fallback for malformed JSON", () => {
+    const result = parseNotesJsonFromModelResponse('{"title": "broken"', transcript);
+    expect(result.title).toBe("Meeting Notes");
+    expect(consoleWarnSpy).toHaveBeenCalled();
+  });
+
+  test("normalizes JSON with missing fields", () => {
+    const result = parseNotesJsonFromModelResponse('{"title": "Test Meeting"}', transcript);
+    expect(result.title).toBe("Test Meeting");
+    expect(result.executiveSummary).toEqual(["Chưa xác định"]);
+    expect(result.decisions).toEqual(["Chưa xác định"]);
+    expect(result.actionItems[0]?.task).toBe("Chưa xác định");
+  });
+
+  test("normalizes JSON with wrong field types", () => {
+    const result = parseNotesJsonFromModelResponse(
+      '{"title": 123, "executiveSummary": "not an array", "decisions": null}',
+      transcript,
+    );
+    expect(result.title).toBe("Meeting Notes");
+    expect(result.executiveSummary).toEqual(["Chưa xác định"]);
+    expect(result.decisions).toEqual(["Chưa xác định"]);
+  });
+
+  test("normalizes action items with invalid priority", () => {
+    const result = parseNotesJsonFromModelResponse(
+      '{"actionItems": [{"task": "Test", "owner": "A", "deadline": "soon", "priority": "URGENT", "notes": ""}]}',
+      transcript,
+    );
+    expect(result.actionItems[0]?.priority).toBe("Chưa xác định");
+  });
+
+  test("logs structured warning on parse failure", () => {
+    consoleWarnSpy.mockClear();
+    parseNotesJsonFromModelResponse("not json", transcript);
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+    const logCall = consoleWarnSpy.mock.calls[0]?.[0] as string;
+    const parsed = JSON.parse(logCall);
+    expect(parsed.event).toBe("gemini_parse_failure");
+    expect(parsed.kind).toBe("notes");
   });
 });

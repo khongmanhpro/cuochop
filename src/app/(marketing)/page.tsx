@@ -14,7 +14,7 @@ const STEPS = [
   {
     step: "3",
     title: "Theo dõi đến khi xong",
-    desc: "Pro đưa action items vào Action Board để manager xem việc quá hạn, blocked và chưa có owner.",
+    desc: "Action Board đưa action items vào một nơi để xem việc quá hạn, blocked và chưa có owner.",
   },
 ];
 
@@ -39,88 +39,97 @@ const FEATURES = [
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <header className="border-b border-slate-100 px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <span className="text-sm font-bold text-blue-700">cuochop</span>
-          <div className="flex items-center gap-4">
-            <Link href="/auth/login" className="text-sm text-slate-600 hover:text-slate-900">
+    <main className="min-h-screen bg-canvas">
+      {/* Top nav — sticky white bar, hairline-soft bottom border */}
+      <header className="sticky top-0 z-30 border-b border-hairline-soft bg-canvas">
+        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
+          <span className="text-[15px] font-semibold tracking-tight text-ink">
+            cuochop
+          </span>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/auth/login"
+              className="text-[14px] font-medium text-slate transition-colors hover:text-ink"
+            >
               Đăng nhập
             </Link>
             <Link
               href="/auth/signup"
-              className="inline-flex h-8 items-center rounded-md bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"
+              className="button-primary"
             >
-              Dùng miễn phí
+              Mở workspace
             </Link>
           </div>
         </div>
       </header>
 
-      <section className="px-4 py-16 text-center sm:px-6 sm:py-24">
-        <div className="mx-auto max-w-4xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-            Pro Action Tracker cho manager
+      {/* Hero band — 80px display, -2px letter-spacing, 1.10 leading, dual CTA */}
+      <section className="px-6 pb-[96px] pt-[96px] text-center">
+        <div className="mx-auto max-w-[960px]">
+          <p className="text-[14px] font-medium uppercase tracking-[0.08em] text-brand-coral">
+            Personal Action Tracker
           </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+          <h1 className="mt-4 text-[80px] font-semibold leading-[1.10] tracking-[-2px] text-ink sm:text-[80px]">
             Biến cuộc họp thành việc có người chịu trách nhiệm
           </h1>
-          <p className="mx-auto mt-5 max-w-3xl text-lg leading-8 text-slate-600">
+          <p className="mx-auto mt-6 max-w-[720px] text-[18px] font-medium leading-[1.50] text-slate">
             cuochop tự động trích xuất quyết định, action items, owner,
             deadline và biến chúng thành bảng theo dõi cho founder/manager.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/auth/signup"
-              className="inline-flex h-12 items-center rounded-md bg-blue-700 px-6 text-base font-semibold text-white shadow-sm hover:bg-blue-800"
-            >
-              Dùng miễn phí
+          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link href="/auth/signup" className="button-primary">
+              Mở workspace
             </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex h-12 items-center rounded-md border border-slate-300 px-6 text-base font-semibold text-slate-700 hover:border-blue-400 hover:text-blue-700"
-            >
-              Xem Pro Manager
+            <Link href="/auth/login" className="button-secondary">
+              Đăng nhập
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="border-t border-slate-100 bg-slate-50 px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-2xl font-semibold text-slate-950">
+      {/* Steps — surface section, card-base tiles (rounded-xl, hairline border) */}
+      <section className="border-t border-hairline-soft bg-surface px-6 py-[80px]">
+        <div className="mx-auto max-w-[1280px]">
+          <h2 className="text-center text-[40px] font-semibold leading-[1.20] tracking-[-1px] text-ink">
             Từ transcript đến follow-through
           </h2>
-          <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          <div className="mt-12 grid gap-6 sm:grid-cols-3">
             {STEPS.map((item) => (
               <div
                 key={item.step}
-                className="rounded-lg border border-slate-200 bg-white p-6"
+                className="rounded-xl border border-hairline bg-canvas p-6"
               >
-                <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-full bg-blue-700 text-sm font-bold text-white">
+                <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-on-primary">
                   {item.step}
                 </div>
-                <h3 className="font-semibold text-slate-950">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{item.desc}</p>
+                <h3 className="text-[20px] font-semibold leading-[1.40] text-ink">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-[14px] leading-[1.50] text-slate">
+                  {item.desc}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-2xl font-semibold text-slate-950">
-            Pro giải quyết phần đau nhất sau cuộc họp
+      {/* Features — 4-column grid of card-base tiles */}
+      <section className="px-6 py-[80px]">
+        <div className="mx-auto max-w-[1280px]">
+          <h2 className="text-center text-[40px] font-semibold leading-[1.20] tracking-[-1px] text-ink">
+            Giải quyết phần đau nhất sau cuộc họp
           </h2>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((feature) => (
               <div
                 key={feature.title}
-                className="rounded-lg border border-slate-200 p-5"
+                className="rounded-xl border border-hairline bg-canvas p-5"
               >
-                <h3 className="font-semibold text-slate-950">{feature.title}</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
+                <h3 className="text-[20px] font-semibold leading-[1.40] text-ink">
+                  {feature.title}
+                </h3>
+                <p className="mt-2 text-[14px] leading-[1.50] text-slate">
                   {feature.desc}
                 </p>
               </div>
@@ -129,26 +138,34 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="border-t border-slate-100 bg-slate-950 px-4 py-16 text-white sm:px-6">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl font-semibold">
-            Đừng để cuộc họp kết thúc bằng một file notes bị quên
-          </h2>
-          <p className="mt-3 text-slate-300">
-            Bắt đầu miễn phí. Nâng cấp Pro khi bạn muốn quản lý action items
-            qua nhiều cuộc họp.
-          </p>
-          <Link
-            href="/pricing"
-            className="mt-6 inline-flex h-10 items-center rounded-md bg-white px-5 text-sm font-semibold text-slate-950 hover:bg-blue-50"
-          >
-            Xem pricing
-          </Link>
+      {/* Promo CTA card — coral, rounded-hero (32px), embedded white pill */}
+      <section className="px-6 py-[80px]">
+        <div className="mx-auto max-w-[1280px]">
+          <div className="rounded-hero bg-brand-coral px-[64px] py-[64px] text-center">
+            <h2 className="text-[40px] font-semibold leading-[1.20] tracking-[-1px] text-on-dark">
+              Đừng để cuộc họp kết thúc bằng một file notes bị quên
+            </h2>
+            <p className="mx-auto mt-4 max-w-[640px] text-[16px] leading-[1.50] text-on-dark/80">
+              Tập trung vào tính năng lõi: notes, decisions, action items,
+              lịch sử và export.
+            </p>
+            <Link
+              href="/auth/signup"
+              className="mt-8 inline-flex h-11 items-center rounded-full border border-on-dark/20 bg-canvas px-6 text-[14px] font-semibold text-ink transition-colors hover:bg-on-dark hover:text-ink"
+            >
+              Mở workspace
+            </Link>
+          </div>
         </div>
       </section>
 
-      <footer className="border-t border-slate-100 px-4 py-8 text-center text-sm text-slate-500 sm:px-6">
-        <p>© 2026 cuochop. Vietnamese AI Workspace.</p>
+      {/* Footer region — dense black canvas */}
+      <footer className="bg-footer-bg px-6 py-[64px]">
+        <div className="mx-auto max-w-[1280px]">
+          <p className="text-[14px] text-muted">
+            © 2026 cuochop. Vietnamese AI Workspace.
+          </p>
+        </div>
       </footer>
     </main>
   );

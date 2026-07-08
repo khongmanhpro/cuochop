@@ -60,6 +60,7 @@ export type GenerateVietnameseMeetingNotesParams = {
   transcript: VietnameseMeetingTranscript;
   modelLabel: string;
   originalName?: string;
+  templateSuffix?: string;
 };
 
 const transcriptionPrompt = `Bạn là hệ thống transcription cho cuộc họp tiếng Việt.
@@ -256,6 +257,7 @@ export async function generateVietnameseMeetingNotes({
   transcript,
   modelLabel,
   originalName,
+  templateSuffix,
 }: GenerateVietnameseMeetingNotesParams): Promise<VietnameseMeetingNotes> {
   if (!Array.isArray(transcript.segments) || transcript.segments.length === 0) {
     throw new Error("Transcript is empty.");
@@ -264,7 +266,7 @@ export async function generateVietnameseMeetingNotes({
   const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
   const response = await ai.models.generateContent({
     model: getGeminiModelId(modelLabel),
-    contents: `${notesPromptIntro}
+    contents: `${notesPromptIntro}${templateSuffix || ""}
 
 Tên file gốc: ${originalName || "Chưa xác định"}
 
@@ -283,12 +285,14 @@ export function parseJsonFromModelResponse(text: string) {
   const jsonText = extractJsonText(text);
 
   if (!jsonText) {
+    logGeminiParseFailure("transcript", text, "no JSON block found");
     return buildFallbackTranscript(text);
   }
 
   try {
     return normalizeTranscript(JSON.parse(jsonText), text);
-  } catch {
+  } catch (error) {
+    logGeminiParseFailure("transcript", text, error instanceof Error ? error.message : "JSON.parse failed");
     return buildFallbackTranscript(text);
   }
 }
@@ -316,12 +320,14 @@ export function parseNotesJsonFromModelResponse(
   const jsonText = extractJsonText(text);
 
   if (!jsonText) {
+    logGeminiParseFailure("notes", text, "no JSON block found");
     return buildFallbackMeetingNotes(text, transcript);
   }
 
   try {
     return normalizeMeetingNotes(JSON.parse(jsonText), transcript, text);
-  } catch {
+  } catch (error) {
+    logGeminiParseFailure("notes", text, error instanceof Error ? error.message : "JSON.parse failed");
     return buildFallbackMeetingNotes(text, transcript);
   }
 }
@@ -364,11 +370,18 @@ export function buildFallbackMeetingNotes(
   };
 }
 
-function extractJsonText(text: string) {
+export function extractJsonText(text: string) {
+  if (!text || typeof text !== "string") {
+    return "";
+  }
+
+  // Strip markdown code fences (```json ... ``` or ``` ... ```)
   const withoutFence = text
-    .replace(/^```(?:json)?/i, "")
-    .replace(/```$/i, "")
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/i, "")
     .trim();
+
+  // Find the first `{` and the last `}` — handles JSON embedded in prose
   const start = withoutFence.indexOf("{");
   const end = withoutFence.lastIndexOf("}");
 
@@ -377,6 +390,32 @@ function extractJsonText(text: string) {
   }
 
   return withoutFence.slice(start, end + 1);
+}
+
+/**
+ * Log Gemini parse failures to console for debugging.
+ * Does NOT log the prompt or any user content — only the raw model response
+ * (truncated) and the error reason.
+ */
+function logGeminiParseFailure(
+  kind: "transcript" | "notes",
+  rawResponse: string,
+  reason: string,
+) {
+  const truncated =
+    rawResponse.length > 500
+      ? `${rawResponse.slice(0, 500)}...[truncated ${rawResponse.length - 500} chars]`
+      : rawResponse;
+  console.warn(
+    JSON.stringify({
+      level: "warn",
+      event: "gemini_parse_failure",
+      kind,
+      reason,
+      rawResponseLength: rawResponse.length,
+      rawResponsePreview: truncated,
+    }),
+  );
 }
 
 function normalizeTranscript(

@@ -5,8 +5,6 @@ import {
 import type { VietnameseMeetingNotes } from "@/lib/gemini";
 import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
 import { getSession } from "@/lib/session";
-import { canExportDocx } from "@/lib/plans";
-import { getUserOrganization } from "@/lib/organizations";
 
 export const runtime = "nodejs";
 
@@ -30,16 +28,6 @@ export async function POST(request: Request) {
         "Định dạng export không hợp lệ.",
         400,
         `Invalid export format: ${String(format)}`,
-      );
-    }
-
-    const activeOrganization = await getUserOrganization(user.id);
-
-    if (format === "docx" && !canExportDocx(user, activeOrganization)) {
-      throw appApiError(
-        "PLAN_FEATURE_UNAVAILABLE",
-        "Download DOCX chỉ có trên plan Pro. Nâng cấp để sử dụng tính năng này.",
-        403,
       );
     }
 

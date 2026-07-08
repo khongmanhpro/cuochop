@@ -4,12 +4,13 @@ import {
 } from "@/lib/gemini";
 import { formatMeetingNotesMarkdown } from "@/lib/formatMeetingNotesMarkdown";
 import { getGeminiModelId } from "@/lib/models";
+import { getMeetingTemplate } from "@/lib/meeting-templates";
 import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
 import { cleanupOldUploadsSafely } from "@/lib/upload-server";
 import { getSession } from "@/lib/session";
-import { canGenerate } from "@/lib/plans";
 import { getRequestIp, logAudit } from "@/lib/audit";
 import { getUserOrganization } from "@/lib/organizations";
+import { logError, logWarn } from "@/lib/logger";
 import { prisma } from "@/lib/db";
 import {
   buildActionItemCreatePayloads,
@@ -20,6 +21,7 @@ import {
   buildFollowUpBriefBlocks,
   postSlackMessage,
 } from "@/lib/slack";
+import { checkGeminiRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -30,21 +32,20 @@ export async function POST(request: Request) {
       throw appApiError("UNAUTHENTICATED", "Bạn cần đăng nhập để sử dụng tính năng này.", 401);
     }
 
-    const activeOrganization = await getUserOrganization(user.id);
-
-    if (!canGenerate(user, activeOrganization)) {
-      throw appApiError(
-        "PLAN_LIMIT_EXCEEDED",
-        `Bạn đã dùng hết ${user.usageThisMonth} lần miễn phí tháng này. Nâng cấp Pro để tiếp tục.`,
-        423,
-      );
+    const rateLimit = checkGeminiRateLimit(user.id);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
     }
+
+    const activeOrganization = await getUserOrganization(user.id);
 
     const body: unknown = await request.json();
     const payload = isRecord(body) ? body : {};
     const transcript = payload.transcript;
     const notesModel = normalizeString(payload.notesModel);
     const originalName = normalizeString(payload.originalName) || undefined;
+    const templateId = normalizeString(payload.template) || "default";
+    const template = getMeetingTemplate(templateId);
 
     if (!notesModel) {
       throw appApiError(
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
       transcript,
       modelLabel: notesModel,
       originalName,
+      templateSuffix: template.promptSuffix,
     });
 
     const markdown = formatMeetingNotesMarkdown(notes);
@@ -194,12 +196,27 @@ export async function POST(request: Request) {
             );
             await persistConflicts(decision.id, conflicts);
           } catch (conflictErr) {
-            console.warn("[conflict-detector] failed for decision", decision.id, conflictErr);
+            logWarn({
+              route: "/api/generate-notes",
+              userId: user.id,
+              code: "CONFLICT_DETECTOR_FAILED",
+              message:
+                conflictErr instanceof Error
+                  ? conflictErr.message
+                  : "conflict detector failed",
+              decisionId: decision.id,
+            });
           }
         }
       }
     } catch (error) {
-      console.warn("[action-tracker] failed to persist derived records", error);
+      logWarn({
+        route: "/api/generate-notes",
+        userId: user.id,
+        code: "ACTION_TRACKER_FAILED",
+        message:
+          error instanceof Error ? error.message : "action tracker failed",
+      });
     }
 
     if (activeOrganization) {
@@ -230,7 +247,15 @@ export async function POST(request: Request) {
           });
         }
       } catch (slackError) {
-        console.warn("[slack] failed to post follow-up brief", slackError);
+        logWarn({
+          route: "/api/generate-notes",
+          userId: user.id,
+          code: "SLACK_POST_FAILED",
+          message:
+            slackError instanceof Error
+              ? slackError.message
+              : "slack post failed",
+        });
       }
     }
 

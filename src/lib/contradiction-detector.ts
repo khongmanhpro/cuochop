@@ -11,12 +11,17 @@ const NEGATION_PAIRS: [RegExp, RegExp][] = [
   [/(\b)\s*sẽ\s+(\w+)/i, /(\b)\s*không\s+sẽ\s+(\w+)/i],
   [/(\b)\s*đồng\s+ý/i, /(\b)\s*không\s+đồng\s+ý/i],
   [/(\b)\s*chấp\s+nhận/i, /(\b)\s*từ\s+chối/i],
+  [/(\b)\s*chấp\s+thuận/i, /(\b)\s*bác\s+bỏ/i],
   [/(\b)\s*bật\s+/i, /(\b)\s*tắt\s+/i],
   [/(\b)\s*bật/i, /(\b)\s*tắt/i],
   [/(\b)\s*thêm\s+/i, /(\b)\s*bỏ\s+/i],
   [/(\b)\s*tăng\s+/i, /(\b)\s*giảm\s+/i],
   [/(\b)\s*mở\s+/i, /(\b)\s*đóng\s+/i],
+  [/(\b)\s*ký\s+/i, /(\b)\s*hủy\s+ký/i],
+  [/(\b)\s*ký\s+hợp\s+đồng/i, /(\b)\s*hủy\s+ký\s+hợp\s+đồng/i],
 ];
+
+const SIMILARITY_THRESHOLD = 0.25;
 
 export async function detectConflicts(
   newDecisionId: string,
@@ -39,7 +44,7 @@ export async function detectConflicts(
 
   for (const existing of existingDecisions) {
     const similarity = computeKeywordOverlap(newContent, existing.content);
-    if (similarity < 0.15) continue;
+    if (similarity < SIMILARITY_THRESHOLD) continue;
 
     const negation = detectNegation(newContent, existing.content);
     if (negation) {

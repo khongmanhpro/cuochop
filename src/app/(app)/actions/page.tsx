@@ -8,7 +8,6 @@ import {
 } from "@/components/actions-board";
 import { prisma } from "@/lib/db";
 import { SearchScrollTarget } from "@/components/search-scroll-target";
-import { canViewHistory } from "@/lib/plans";
 import { getUserOrganization } from "@/lib/organizations";
 import { getSession } from "@/lib/session";
 
@@ -65,6 +64,7 @@ export default async function ActionsPage({
   searchParams?: Promise<{
     filter?: string;
     highlight?: string;
+    item?: string;
     meeting?: string;
     section?: string;
   }>;
@@ -74,36 +74,6 @@ export default async function ActionsPage({
   const params = searchParams ? await searchParams : {};
 
   const activeOrganization = await getUserOrganization(user.id);
-
-  if (!canViewHistory(user, activeOrganization)) {
-    return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
-        <section className="rounded-lg border border-amber-200 bg-amber-50 p-8">
-          <p className="text-sm font-semibold uppercase text-amber-700">
-            Pro Manager
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-950">
-            Đừng để action items chết trong biên bản
-          </h1>
-          <p className="mt-3 max-w-2xl text-slate-700">
-            Action Board gom việc từ mọi cuộc họp, giúp manager theo dõi owner,
-            deadline, blocker và việc quá hạn rõ ràng.
-          </p>
-          <div className="mt-6 grid gap-3 text-sm text-amber-950 sm:grid-cols-3">
-            <ValuePill title="Owner rõ ràng" text="Không còn việc không ai nhận." />
-            <ValuePill title="Deadline & status" text="Biết việc nào đang todo, doing, blocked." />
-            <ValuePill title="Manager Digest" text="Xem nhanh việc quá hạn và blocked." />
-          </div>
-          <Link
-            href="/pricing"
-            className="mt-7 inline-flex h-10 items-center rounded-md bg-blue-700 px-5 text-sm font-semibold text-white hover:bg-blue-800"
-          >
-            Nâng cấp Pro
-          </Link>
-        </section>
-      </main>
-    );
-  }
 
   const [actionItems, decisions, organizationMembers, rawConflicts] = await Promise.all([
     prisma.actionItem.findMany({
@@ -221,26 +191,33 @@ export default async function ActionsPage({
   }));
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <SearchScrollTarget highlightId={params.highlight || params.meeting} />
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase text-blue-700">
-            Pro Action Tracker
-          </p>
-          <h1 className="mt-1 text-3xl font-semibold text-slate-950">
-            Action Board
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Theo dõi việc phải làm, blocker và quyết định đã chốt từ mọi cuộc họp.
-          </p>
+    <main className="mx-auto w-full max-w-[1280px] px-6 py-12">
+      <SearchScrollTarget highlightId={params.highlight || params.item || params.meeting} />
+      <div className="mb-8 overflow-hidden rounded-xl border border-hairline bg-canvas">
+        <div className="grid gap-0 lg:grid-cols-[1.35fr_0.65fr]">
+          <div className="p-8">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
+              Personal Action Tracker
+            </p>
+            <h1 className="mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink">
+              Action Board
+            </h1>
+            <p className="mt-4 max-w-2xl text-[16px] leading-[1.50] text-slate">
+              Lọc việc theo owner, deadline, blocker; đổi status nhanh và xử lý hàng loạt từ mọi cuộc họp.
+            </p>
+          </div>
+          <div className="flex items-end bg-footer-bg p-8 text-on-dark">
+            <div>
+              <p className="text-[14px] text-muted">Next capture</p>
+              <Link
+                href="/app"
+                className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-on-dark px-5 text-[14px] font-semibold text-ink transition-colors hover:bg-canvas"
+              >
+                New Meeting
+              </Link>
+            </div>
+          </div>
         </div>
-        <Link
-          href="/app"
-          className="inline-flex h-10 items-center justify-center rounded-md bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"
-        >
-          New Meeting
-        </Link>
       </div>
       <ActionsBoard
         initialItems={items}
@@ -265,14 +242,5 @@ export default async function ActionsPage({
         initialDeadlineFilter={params.filter === "deadlines"}
       />
     </main>
-  );
-}
-
-function ValuePill({ title, text }: { title: string; text: string }) {
-  return (
-    <div className="rounded-md border border-amber-200 bg-white/60 p-3">
-      <p className="font-semibold">{title}</p>
-      <p className="mt-1 leading-5">{text}</p>
-    </div>
   );
 }

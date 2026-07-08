@@ -123,44 +123,75 @@ export async function validateStoredUploadPath({
 export async function cleanupOldUploads(
   uploadRoot = UPLOAD_ROOT,
   olderThanMs = UPLOAD_TTL_MS,
+  maxScan = 100,
 ) {
   await mkdir(uploadRoot, { recursive: true });
 
   const entries = await readdir(uploadRoot, { withFileTypes: true });
   const cutoff = Date.now() - olderThanMs;
 
-  await Promise.all(
-    entries
-      .filter((entry) => entry.isDirectory())
-      .map(async (entry) => {
-        const folderPath = path.join(uploadRoot, entry.name);
-        const folderStat = await stat(folderPath);
-
-        if (folderStat.mtimeMs < cutoff) {
-          await rm(folderPath, { recursive: true, force: true });
-        }
-      }),
+  // Only scan up to maxScan oldest directories to avoid blocking on huge tmp dirs.
+  const dirEntries = entries.filter((entry) => entry.isDirectory());
+  const folderStats = await Promise.all(
+    dirEntries.map(async (entry) => {
+      const folderPath = path.join(uploadRoot, entry.name);
+      const folderStat = await stat(folderPath);
+      return { name: entry.name, path: folderPath, mtimeMs: folderStat.mtimeMs };
+    }),
   );
+
+  const staleFolders = folderStats
+    .filter((folder) => folder.mtimeMs < cutoff)
+    .sort((a, b) => a.mtimeMs - b.mtimeMs)
+    .slice(0, maxScan);
+
+  let removedCount = 0;
+  await Promise.all(
+    staleFolders.map(async (folder) => {
+      await rm(folder.path, { recursive: true, force: true });
+      removedCount += 1;
+    }),
+  );
+
+  if (removedCount > 0) {
+    console.info(
+      `[cleanup] removed=${removedCount} scanned=${folderStats.length} stale=${staleFolders.length} root=${uploadRoot}`,
+    );
+  }
+
+  return removedCount;
 }
 
 export async function cleanupOldUploadsSafely({
   route,
   uploadId,
   uploadRoot = UPLOAD_ROOT,
+  background = true,
 }: {
   route: string;
   uploadId?: string;
   uploadRoot?: string;
+  background?: boolean;
 }) {
-  try {
-    await cleanupOldUploads(uploadRoot);
-  } catch (error) {
-    console.warn(
-      `[cleanup-warning] route=${route} uploadId=${uploadId || "-"} message=${
-        error instanceof Error ? error.message : "cleanup failed"
-      }`,
-    );
+  const runCleanup = async () => {
+    try {
+      await cleanupOldUploads(uploadRoot);
+    } catch (error) {
+      console.warn(
+        `[cleanup-warning] route=${route} uploadId=${uploadId || "-"} message=${
+          error instanceof Error ? error.message : "cleanup failed"
+        }`,
+      );
+    }
+  };
+
+  if (background) {
+    // Fire-and-forget: don't block the request while cleaning up old uploads.
+    void runCleanup();
+    return;
   }
+
+  await runCleanup();
 }
 
 export async function countSavedChunks({

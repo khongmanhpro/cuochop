@@ -8,7 +8,6 @@ import {
   escapeHtml,
   renderEmailLayout,
 } from "@/lib/email-templates/base";
-import { canViewHistory } from "@/lib/plans";
 import { getUserOrganization } from "@/lib/organizations";
 import { getSession } from "@/lib/session";
 
@@ -29,14 +28,6 @@ export async function PATCH(
     }
 
     const activeOrganization = await getUserOrganization(user.id);
-
-    if (!canViewHistory(user, activeOrganization)) {
-      throw appApiError(
-        "PLAN_FEATURE_UNAVAILABLE",
-        "Action Board chỉ có trên plan Pro. Nâng cấp để theo dõi action items.",
-        403,
-      );
-    }
 
     const { id } = await ctx.params;
     if (!id) {

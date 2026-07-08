@@ -66,7 +66,7 @@ export function NotificationBell({
       <button
         type="button"
         aria-label="Notifications"
-        className="relative flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:border-blue-200 hover:text-blue-700"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-slate hover:border-ink hover:text-ink"
         onClick={() => setOpen((current) => !current)}
       >
         <svg
@@ -83,20 +83,20 @@ export function NotificationBell({
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unreadCount > 0 ? (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-on-dark">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         ) : null}
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-20 mt-2 w-80 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <p className="text-sm font-semibold text-slate-950">Notifications</p>
+        <div className="absolute right-0 z-20 mt-2 w-80 overflow-hidden rounded-xl border border-hairline bg-canvas shadow-lg">
+          <div className="flex items-center justify-between border-b border-hairline-soft px-4 py-3">
+            <p className="text-sm font-semibold text-ink">Notifications</p>
             <button
               type="button"
               disabled={isPending || unreadCount === 0}
-              className="text-xs font-semibold text-blue-700 disabled:text-slate-400"
+              className="text-xs font-semibold text-ink disabled:text-steel"
               onClick={() => markAsRead()}
             >
               Mark all read
@@ -108,24 +108,24 @@ export function NotificationBell({
                 <button
                   key={notification.id}
                   type="button"
-                  className={`block w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 ${
-                    notification.read ? "bg-white" : "bg-blue-50/50"
+                  className={`block w-full border-b border-hairline-soft px-4 py-3 text-left hover:bg-surface ${
+                    notification.read ? "bg-canvas" : "bg-brand-blue-200/40"
                   }`}
                   onClick={() => openNotification(notification)}
                 >
-                  <span className="block text-sm font-semibold text-slate-950">
+                  <span className="block text-sm font-semibold text-ink">
                     {notification.title}
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-600">
+                  <span className="mt-1 block text-xs leading-5 text-slate">
                     {notification.body}
                   </span>
-                  <span className="mt-1 block text-[11px] text-slate-400">
+                  <span className="mt-1 block text-[11px] text-steel">
                     {formatDate(notification.createdAt)}
                   </span>
                 </button>
               ))
             ) : (
-              <p className="px-4 py-6 text-center text-sm text-slate-500">
+              <p className="px-4 py-6 text-center text-sm text-slate">
                 No notifications yet.
               </p>
             )}

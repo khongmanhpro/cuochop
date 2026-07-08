@@ -1,21 +1,128 @@
 @import "tailwindcss";
 
+/*
+ * MiniMax design system (DESIGN.md)
+ * Stark black/white canvas + vibrant gradient product cards.
+ * DM Sans across all surfaces. Pill buttons (rounded-full) always.
+ */
+
 :root {
-  --background: #f1f5f9;
-  --foreground: #0f172a;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-dm-mono);
+
+  /* Brand & Accent */
+  --color-primary: #0a0a0a;
+  --color-on-primary: #ffffff;
+  --color-primary-soft: #181e25;
+  --color-brand-coral: #ff5530;
+  --color-brand-magenta: #ea5ec1;
+  --color-brand-blue: #1456f0;
+  --color-brand-blue-mid: #3b82f6;
+  --color-brand-blue-deep: #1d4ed8;
+  --color-brand-blue-700: #17437d;
+  --color-brand-cyan: #3daeff;
+  --color-brand-blue-200: #bfdbfe;
+  --color-brand-purple: #a855f7;
+
+  /* Surface */
+  --color-canvas: #ffffff;
+  --color-surface: #f7f8fa;
+  --color-surface-soft: #f2f3f5;
+  --color-hairline: #e5e7eb;
+  --color-hairline-soft: #eaecf0;
+
+  /* Text */
+  --color-ink: #0a0a0a;
+  --color-ink-strong: #000000;
+  --color-charcoal: #222222;
+  --color-slate: #45515e;
+  --color-steel: #5f5f5f;
+  --color-stone: #8e8e93;
+  --color-muted: #a8aab2;
+  --color-on-dark: #ffffff;
+
+  /* Semantic */
+  --color-success-bg: #e8ffea;
+  --color-success-text: #1ba673;
+  --color-error: #d45656;
+
+  /* Footer */
+  --color-footer-bg: #0a0a0a;
+
+  /* Typography — DM Sans scale */
+  --text-hero: 80px;
+  --text-hero--line-height: 1.10;
+  --text-hero--letter-spacing: -2px;
+  --text-hero--font-weight: 600;
+
+  --text-display-lg: 56px;
+  --text-display-lg--line-height: 1.10;
+  --text-display-lg--letter-spacing: -1.5px;
+  --text-display-lg--font-weight: 600;
+
+  --text-heading-lg: 40px;
+  --text-heading-lg--line-height: 1.20;
+  --text-heading-lg--letter-spacing: -1px;
+  --text-heading-lg--font-weight: 600;
+
+  --text-heading-md: 32px;
+  --text-heading-md--line-height: 1.25;
+  --text-heading-md--letter-spacing: -0.5px;
+  --text-heading-md--font-weight: 600;
+
+  --text-heading-sm: 24px;
+  --text-heading-sm--line-height: 1.30;
+  --text-heading-sm--font-weight: 600;
+
+  --text-card-title: 20px;
+  --text-card-title--line-height: 1.40;
+  --text-card-title--font-weight: 600;
+
+  --text-subtitle: 18px;
+  --text-subtitle--line-height: 1.50;
+  --text-subtitle--font-weight: 500;
+
+  --text-body: 16px;
+  --text-body--line-height: 1.50;
+  --text-body--font-weight: 400;
+
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 1.50;
+  --text-body-sm--font-weight: 400;
+
+  --text-caption: 13px;
+  --text-caption--line-height: 1.70;
+  --text-caption--font-weight: 400;
+
+  --text-micro: 12px;
+  --text-micro--line-height: 1.50;
+  --text-micro--font-weight: 400;
+
+  /* Radius scale */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-xxl: 20px;
+  --radius-xxxl: 24px;
+  --radius-hero: 32px;
+  --radius-full: 9999px;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-dm-sans), Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
@@ -26,6 +133,151 @@ textarea {
 }
 
 [data-search-highlighted="true"] {
-  outline: 2px solid rgb(37 99 235);
+  outline: 2px solid var(--color-brand-blue-deep);
   outline-offset: 3px;
+}
+
+@layer components {
+  /* button-primary — black pill CTA, the dominant action */
+  .button-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 11px 24px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.40;
+    transition: background-color 150ms ease;
+  }
+  .button-primary:hover {
+    background-color: var(--color-charcoal);
+  }
+  .button-primary:disabled {
+    background-color: var(--color-hairline);
+    color: var(--color-muted);
+    cursor: not-allowed;
+  }
+
+  /* button-secondary — outlined pill, paired with primary in dual-CTA */
+  .button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 11px 24px;
+    border-radius: var(--radius-full);
+    background-color: transparent;
+    color: var(--color-ink);
+    border: 1px solid var(--color-ink);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.40;
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+  .button-secondary:hover {
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+  }
+
+  /* button-tertiary — white-fill quieter pill */
+  .button-tertiary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 11px 24px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    border: 1px solid var(--color-hairline);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.40;
+    transition: border-color 150ms ease;
+  }
+  .button-tertiary:hover {
+    border-color: var(--color-ink);
+  }
+
+  /* rounded-hero utility — 32px signature radius for vibrant cards */
+  .rounded-hero {
+    border-radius: var(--radius-hero);
+  }
+
+  /* segmented-tab — underline-style tab navigation */
+  .segmented-tab {
+    padding: 16px 20px;
+    color: var(--color-steel);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.40;
+    border-bottom: 2px solid transparent;
+    transition: color 150ms ease, border-color 150ms ease;
+  }
+  .segmented-tab:hover {
+    color: var(--color-ink);
+  }
+
+  /* segmented-tab-active — activated underline tab */
+  .segmented-tab-active {
+    color: var(--color-ink);
+    border-bottom: 2px solid var(--color-ink);
+  }
+
+  /* pill-tab — inactive pill tab */
+  .pill-tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-canvas);
+    color: var(--color-steel);
+    border: 1px solid var(--color-hairline);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.50;
+  }
+
+  /* badge-success — pale-green confirmation badge */
+  .badge-success {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-success-bg);
+    color: var(--color-success-text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.50;
+  }
+
+  /* badge-new — coral "NEW" / "Live" pill */
+  .badge-new {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-brand-coral);
+    color: var(--color-on-dark);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.50;
+  }
+
+  /* badge-beta — pale-blue informational pill */
+  .badge-beta {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-brand-blue-200);
+    color: var(--color-brand-blue-deep);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.50;
+  }
 }

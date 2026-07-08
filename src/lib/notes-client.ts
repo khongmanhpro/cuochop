@@ -16,10 +16,12 @@ export async function generateNotesForTranscript({
   transcript,
   notesModel,
   originalName,
+  template,
 }: {
   transcript: VietnameseMeetingTranscript;
   notesModel: string;
   originalName?: string;
+  template?: string;
 }) {
   const response = await fetch("/api/generate-notes", {
     method: "POST",
@@ -30,6 +32,7 @@ export async function generateNotesForTranscript({
       transcript,
       notesModel,
       originalName,
+      template,
     }),
   });
   const body = (await response.json()) as GenerateNotesResponse;

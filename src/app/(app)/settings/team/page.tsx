@@ -15,7 +15,6 @@ import {
 } from "@/lib/organizations";
 import { buildSlackInstallUrl, listSlackChannels, type SlackChannel } from "@/lib/slack";
 import { getSession } from "@/lib/session";
-import { CheckoutButton } from "@/app/(marketing)/pricing/checkout-button";
 
 const roles: OrganizationRole[] = ["owner", "admin", "member"];
 
@@ -27,28 +26,25 @@ export default async function TeamSettingsPage() {
 
   if (!activeOrganization) {
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
-        <section className="rounded-lg border border-slate-200 bg-white p-6">
-          <p className="text-sm font-semibold uppercase text-blue-700">
+      <main className="mx-auto w-full max-w-[1280px] px-6 py-12">
+        <section className="rounded-xl border border-hairline bg-canvas p-8">
+          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
             Team workspace
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-950">
+          <h1 className="mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink">
             Create a team workspace
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <p className="mt-4 max-w-2xl text-[16px] leading-[1.50] text-slate">
             Team workspaces share action boards and decision logs across members.
           </p>
-          <form action={createTeamOrganization} className="mt-6 flex max-w-xl gap-3">
+          <form action={createTeamOrganization} className="mt-8 flex max-w-xl gap-3">
             <input
               name="name"
               required
               placeholder="Workspace name"
-              className="h-10 min-w-0 flex-1 rounded-md border border-slate-300 px-3 text-sm"
+              className="h-10 min-w-0 flex-1 rounded-md border border-hairline bg-canvas px-4 text-[14px] text-ink placeholder:text-stone focus:border-brand-blue-deep focus:outline-none"
             />
-            <button
-              type="submit"
-              className="h-10 rounded-md bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"
-            >
+            <button type="submit" className="button-primary">
               Create team
             </button>
           </form>
@@ -64,7 +60,7 @@ export default async function TeamSettingsPage() {
   const currentMember = members.find((member) => member.userId === user.id);
   const canManage =
     currentMember?.role === "owner" || currentMember?.role === "admin";
-  const isBusiness = activeOrganization.plan === "business";
+  const isPersonalWorkspace = true;
   const slackSettings = await prisma.organization.findUnique({
     where: { id: activeOrganization.id },
     select: {
@@ -85,33 +81,32 @@ export default async function TeamSettingsPage() {
       : [];
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <main className="mx-auto w-full max-w-[1280px] px-6 py-12">
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase text-blue-700">
+          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
             Team settings
           </p>
-          <h1 className="mt-1 text-3xl font-semibold text-slate-950">
+          <h1 className="mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink">
             {activeOrganization.name}
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-[16px] leading-[1.50] text-slate">
             {members.length} member{members.length === 1 ? "" : "s"} · Manage roles,
-            invites, and team billing status.
+            invites, Slack integration, and personal data exports.
           </p>
         </div>
         <PlanStatus
           organizationId={activeOrganization.id}
-          plan={activeOrganization.plan}
-          isBusiness={isBusiness}
+          plan={isPersonalWorkspace ? "personal" : activeOrganization.plan}
           isOwner={currentMember?.role === "owner"}
         />
       </div>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold text-slate-950">Invite member</h2>
+      <section className="rounded-xl border border-hairline bg-canvas p-8">
+        <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">Invite member</h2>
         <form
           action={inviteTeamMember}
-          className="mt-4 grid gap-3 md:grid-cols-[1fr_160px_auto]"
+          className="mt-6 grid gap-3 md:grid-cols-[1fr_160px_auto]"
         >
           <input
             type="hidden"
@@ -124,13 +119,13 @@ export default async function TeamSettingsPage() {
             required
             disabled={!canManage}
             placeholder="teammate@company.com"
-            className="h-10 rounded-md border border-slate-300 px-3 text-sm disabled:bg-slate-100"
+            className="h-10 rounded-md border border-hairline bg-canvas px-4 text-[14px] text-ink placeholder:text-stone focus:border-brand-blue-deep focus:outline-none disabled:bg-surface"
           />
           <select
             name="role"
             disabled={!canManage}
             defaultValue="member"
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm disabled:bg-slate-100"
+            className="h-10 rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink focus:border-brand-blue-deep focus:outline-none disabled:bg-surface"
           >
             {roles.map((role) => (
               <option key={role} value={role}>
@@ -141,55 +136,51 @@ export default async function TeamSettingsPage() {
           <button
             type="submit"
             disabled={!canManage}
-            className="h-10 rounded-md bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 disabled:bg-slate-300"
+            className="button-primary disabled:!bg-hairline disabled:!text-muted"
           >
             Invite
           </button>
         </form>
         {!canManage ? (
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-3 text-[14px] leading-[1.50] text-steel">
             Only owners and admins can invite or manage members.
           </p>
         ) : null}
       </section>
 
-      <section className="mt-6 rounded-lg border border-slate-200 bg-white p-5">
+      <section className="mt-8 rounded-xl border border-hairline bg-canvas p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-semibold text-slate-950">Slack integration</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">Slack integration</h2>
+            <p className="mt-2 text-[14px] leading-[1.50] text-slate">
               Post follow-up briefs and deadline reminders to your team channel.
             </p>
           </div>
           {slackIntegration ? (
-            <span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-              Connected
-            </span>
+            <span className="badge-success">Connected</span>
           ) : (
-            <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600">
-              Not connected
-            </span>
+            <span className="pill-tab">Not connected</span>
           )}
         </div>
 
         {!canManage ? (
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-4 text-[14px] leading-[1.50] text-steel">
             Only owners and admins can manage Slack.
           </p>
         ) : slackIntegration ? (
-          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto]">
+          <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto]">
             <form action={saveSlackSettings} className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <input
                 type="hidden"
                 name="organizationId"
                 value={activeOrganization.id}
               />
-              <label className="text-sm font-medium text-slate-700">
+              <label className="text-[14px] font-medium text-charcoal">
                 Posting channel
                 <select
                   name="channelId"
                   defaultValue={slackIntegration.channelId ?? ""}
-                  className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                  className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink focus:border-brand-blue-deep focus:outline-none"
                 >
                   <option value="">Choose a channel</option>
                   {slackChannels.map((channel) => (
@@ -199,7 +190,7 @@ export default async function TeamSettingsPage() {
                   ))}
                 </select>
               </label>
-              <label className="flex items-center gap-2 self-end text-sm text-slate-700">
+              <label className="flex items-center gap-2 self-end text-[14px] text-charcoal">
                 <input
                   type="checkbox"
                   name="autoPostEnabled"
@@ -210,7 +201,7 @@ export default async function TeamSettingsPage() {
               </label>
               <button
                 type="submit"
-                className="h-10 rounded-md bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 sm:col-span-2"
+                className="button-primary sm:col-span-2"
               >
                 Save Slack settings
               </button>
@@ -223,7 +214,7 @@ export default async function TeamSettingsPage() {
               />
               <button
                 type="submit"
-                className="h-10 rounded-md border border-red-200 px-4 text-sm font-semibold text-red-700 hover:bg-red-50"
+                className="button-tertiary !border-error !text-error"
               >
                 Disconnect
               </button>
@@ -232,42 +223,42 @@ export default async function TeamSettingsPage() {
         ) : slackInstallUrl ? (
           <a
             href={slackInstallUrl}
-            className="mt-4 inline-flex h-10 items-center rounded-md bg-[#4A154B] px-4 text-sm font-semibold text-white hover:bg-[#3b103c]"
+            className="button-primary mt-6 !bg-[#4A154B] hover:!bg-[#3b103c]"
           >
             Connect Slack
           </a>
         ) : (
-          <p className="mt-3 text-sm text-amber-700">
+          <p className="mt-4 text-[14px] leading-[1.50] text-brand-coral">
             Slack environment variables are missing.
           </p>
         )}
       </section>
 
-      <section className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="font-semibold text-slate-950">Members</h2>
+      <section className="mt-8 overflow-hidden rounded-xl border border-hairline bg-canvas">
+        <div className="border-b border-hairline-soft px-8 py-5">
+          <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">Members</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-            <thead className="bg-slate-50 text-slate-600">
+          <table className="w-full min-w-[760px] border-collapse text-left text-[14px]">
+            <thead className="bg-surface text-steel">
               <tr>
-                <th className="px-5 py-3 font-semibold">Name</th>
-                <th className="px-5 py-3 font-semibold">Email</th>
-                <th className="px-5 py-3 font-semibold">Role</th>
-                <th className="px-5 py-3 font-semibold">Actions</th>
+                <th className="px-8 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">Name</th>
+                <th className="px-8 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">Email</th>
+                <th className="px-8 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">Role</th>
+                <th className="px-8 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {members.map((member) => (
-                <tr key={member.userId} className="border-t border-slate-100">
-                  <td className="px-5 py-3 font-medium text-slate-950">
+                <tr key={member.userId} className="border-t border-hairline-soft">
+                  <td className="px-8 py-4 font-medium text-ink">
                     {member.name || "Unnamed"}
                   </td>
-                  <td className="px-5 py-3 text-slate-600">{member.email}</td>
-                  <td className="px-5 py-3">
+                  <td className="px-8 py-4 text-slate">{member.email}</td>
+                  <td className="px-8 py-4">
                     <RoleBadge role={member.role} />
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-8 py-4">
                     <div className="flex flex-wrap gap-2">
                       <form action={changeTeamMemberRole} className="flex gap-2">
                         <input
@@ -280,7 +271,7 @@ export default async function TeamSettingsPage() {
                           name="role"
                           defaultValue={member.role}
                           disabled={!canManage}
-                          className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm disabled:bg-slate-100"
+                          className="h-9 rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink focus:border-brand-blue-deep focus:outline-none disabled:bg-surface"
                         >
                           {roles.map((role) => (
                             <option key={role} value={role}>
@@ -291,7 +282,7 @@ export default async function TeamSettingsPage() {
                         <button
                           type="submit"
                           disabled={!canManage}
-                          className="h-9 rounded-md border border-slate-300 px-3 text-xs font-semibold text-slate-700 hover:border-blue-300 hover:text-blue-700 disabled:text-slate-400"
+                          className="button-tertiary h-9 px-3 text-[13px] disabled:!text-stone"
                         >
                           Change
                         </button>
@@ -306,7 +297,7 @@ export default async function TeamSettingsPage() {
                         <button
                           type="submit"
                           disabled={!canManage || member.userId === user.id}
-                          className="h-9 rounded-md border border-red-200 px-3 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:border-slate-200 disabled:text-slate-400"
+                          className="button-tertiary h-9 px-3 text-[13px] !border-error !text-error disabled:!border-hairline disabled:!text-stone"
                         >
                           Remove
                         </button>
@@ -321,15 +312,15 @@ export default async function TeamSettingsPage() {
       </section>
 
       {pendingInvites.length > 0 ? (
-        <section className="mt-6 rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold text-slate-950">Pending invites</h2>
-          <div className="mt-4 space-y-2">
+        <section className="mt-8 rounded-xl border border-hairline bg-canvas p-8">
+          <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">Pending invites</h2>
+          <div className="mt-6 space-y-2">
             {pendingInvites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-lg border border-hairline px-4 py-3 text-[14px]"
               >
-                <span className="text-slate-700">{invite.email}</span>
+                <span className="text-charcoal">{invite.email}</span>
                 <RoleBadge role={invite.role} />
               </div>
             ))}
@@ -367,45 +358,33 @@ async function getSlackChannels(encryptedAccessToken: string): Promise<SlackChan
 }
 
 function PlanStatus({
-  organizationId,
   plan,
-  isBusiness,
   isOwner,
 }: {
   organizationId: string;
   plan: string;
-  isBusiness: boolean;
   isOwner: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs font-semibold uppercase text-slate-500">Plan</p>
-      <div className="mt-1 flex items-center gap-3">
-        <span className="text-sm font-semibold capitalize text-slate-950">
+    <div className="rounded-xl border border-hairline bg-canvas px-5 py-4">
+      <p className="text-[13px] font-semibold uppercase tracking-[0.04em] text-steel">Workspace</p>
+      <div className="mt-2 flex items-center gap-3">
+        <span className="text-[16px] font-semibold capitalize text-ink">
           {plan}
         </span>
-        {!isBusiness ? (
-          <CheckoutButton
-            tier="business"
-            organizationId={organizationId}
-            className="h-9 rounded-md bg-blue-700 px-3 text-xs font-semibold text-white hover:bg-blue-800 disabled:bg-slate-300"
-            wrapperClassName=""
-          >
-            Upgrade
-          </CheckoutButton>
-        ) : null}
+        <span className="badge-success">Core features unlocked</span>
       </div>
       {isOwner ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           <a
             href="/api/export?format=json"
-            className="rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="button-tertiary h-9 px-3 text-[13px]"
           >
             Export JSON
           </a>
           <a
             href="/api/export?format=csv"
-            className="rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="button-tertiary h-9 px-3 text-[13px]"
           >
             Export CSV
           </a>
@@ -416,16 +395,11 @@ function PlanStatus({
 }
 
 function RoleBadge({ role }: { role: OrganizationRole }) {
-  const tone =
+  const cls =
     role === "owner"
-      ? "border-blue-200 bg-blue-50 text-blue-700"
+      ? "badge-beta"
       : role === "admin"
-        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-        : "border-slate-200 bg-slate-50 text-slate-700";
-
-  return (
-    <span className={`rounded border px-2 py-1 text-xs font-semibold ${tone}`}>
-      {role}
-    </span>
-  );
+        ? "badge-success"
+        : "pill-tab";
+  return <span className={cls}>{role}</span>;
 }

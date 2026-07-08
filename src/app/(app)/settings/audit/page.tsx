@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getUserOrganization } from "@/lib/organizations";
 import { getSession } from "@/lib/session";
+import { EmptyState } from "@/components/empty-state";
 
 const pageSize = 50;
 
@@ -70,44 +71,44 @@ export default async function AuditLogPage({
   const nextCursor = logs.length > pageSize ? visibleLogs.at(-1)?.id : null;
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <div className="mb-6">
-        <p className="text-sm font-semibold uppercase text-blue-700">
+    <main className="mx-auto w-full max-w-[1280px] px-6 py-12">
+      <div className="mb-8">
+        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
           Compliance
         </p>
-        <h1 className="mt-1 text-3xl font-semibold text-slate-950">
+        <h1 className="mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink">
           Audit log
         </h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-[16px] leading-[1.50] text-slate">
           Review workspace activity across notes, actions, decisions, members, and exports.
         </p>
       </div>
 
-      <form className="mb-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-5">
-        <label className="text-sm font-medium text-slate-700">
+      <form className="mb-8 grid gap-3 rounded-xl border border-hairline bg-canvas p-6 md:grid-cols-5">
+        <label className="text-[14px] font-medium text-charcoal">
           From
           <input
             type="date"
             name="from"
             defaultValue={params.from ?? ""}
-            className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3"
+            className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink focus:border-brand-blue-deep focus:outline-none"
           />
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-[14px] font-medium text-charcoal">
           To
           <input
             type="date"
             name="to"
             defaultValue={params.to ?? ""}
-            className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3"
+            className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink focus:border-brand-blue-deep focus:outline-none"
           />
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-[14px] font-medium text-charcoal">
           User
           <select
             name="userId"
             defaultValue={params.userId ?? ""}
-            className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3"
+            className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink focus:border-brand-blue-deep focus:outline-none"
           >
             <option value="">All users</option>
             {users.map((membership) => (
@@ -117,12 +118,12 @@ export default async function AuditLogPage({
             ))}
           </select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-[14px] font-medium text-charcoal">
           Entity
           <select
             name="entityType"
             defaultValue={params.entityType ?? ""}
-            className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3"
+            className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink focus:border-brand-blue-deep focus:outline-none"
           >
             <option value="">All entities</option>
             {entityTypes.map((entry) => (
@@ -132,45 +133,42 @@ export default async function AuditLogPage({
             ))}
           </select>
         </label>
-        <button
-          type="submit"
-          className="mt-6 h-10 rounded-md bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"
-        >
+        <button type="submit" className="button-primary mt-6">
           Filter
         </button>
       </form>
 
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <section className="overflow-hidden rounded-xl border border-hairline bg-canvas">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
-            <thead className="bg-slate-50 text-slate-600">
+          <table className="w-full min-w-[1100px] border-collapse text-left text-[14px]">
+            <thead className="bg-surface text-steel">
               <tr>
-                <th className="px-4 py-3 font-semibold">Timestamp</th>
-                <th className="px-4 py-3 font-semibold">User</th>
-                <th className="px-4 py-3 font-semibold">Action</th>
-                <th className="px-4 py-3 font-semibold">Entity type</th>
-                <th className="px-4 py-3 font-semibold">Entity ID</th>
-                <th className="px-4 py-3 font-semibold">Changes</th>
+                <th className="px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">Timestamp</th>
+                <th className="px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">User</th>
+                <th className="px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">Action</th>
+                <th className="px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">Entity type</th>
+                <th className="px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">Entity ID</th>
+                <th className="px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.04em]">Changes</th>
               </tr>
             </thead>
             <tbody>
               {visibleLogs.map((log) => (
-                <tr key={log.id} className="border-t border-slate-100 align-top">
-                  <td className="px-4 py-3 text-slate-600">
+                <tr key={log.id} className="border-t border-hairline-soft align-top">
+                  <td className="px-6 py-4 text-slate">
                     {formatDateTime(log.createdAt)}
                   </td>
-                  <td className="px-4 py-3 text-slate-700">
+                  <td className="px-6 py-4 text-charcoal">
                     {log.user.name || log.user.email}
                   </td>
-                  <td className="px-4 py-3 font-medium text-slate-950">
+                  <td className="px-6 py-4 font-medium text-ink">
                     {log.action}
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{log.entityType}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                  <td className="px-6 py-4 text-charcoal">{log.entityType}</td>
+                  <td className="px-6 py-4 font-mono text-[12px] text-steel">
                     {log.entityId}
                   </td>
-                  <td className="max-w-md px-4 py-3">
-                    <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs text-slate-700">
+                  <td className="max-w-md px-6 py-4">
+                    <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded-md bg-surface p-3 text-[12px] text-charcoal">
                       {formatChanges(log.changes)}
                     </pre>
                   </td>
@@ -180,17 +178,19 @@ export default async function AuditLogPage({
           </table>
         </div>
         {visibleLogs.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-slate-500">
-            No audit logs match these filters.
-          </p>
+          <EmptyState
+            icon="📭"
+            title="Chưa có audit log"
+            description="Không có log phù hợp với filter hiện tại. Thử mở rộng khoảng thời gian hoặc xóa filter."
+          />
         ) : null}
       </section>
 
       {nextCursor ? (
-        <div className="mt-4 flex justify-end">
+        <div className="mt-6 flex justify-end">
           <Link
             href={`/settings/audit?${nextPageParams(params, nextCursor)}`}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="button-tertiary"
           >
             Next page
           </Link>

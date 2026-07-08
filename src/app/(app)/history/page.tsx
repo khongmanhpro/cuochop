@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
-import { canViewHistory } from "@/lib/plans";
 import { getUserOrganization } from "@/lib/organizations";
 import { prisma } from "@/lib/db";
 import { SearchScrollTarget } from "@/components/search-scroll-target";
+import { CopyFollowUpButton } from "@/components/copy-follow-up-button";
+import { EmptyState } from "@/components/empty-state";
+import { formatFollowUpBrief } from "@/lib/follow-up-brief";
 import type { MeetingNoteModel } from "@/generated/prisma/models";
 import type { VietnameseMeetingNotes } from "@/lib/gemini";
 
@@ -19,26 +20,6 @@ export default async function HistoryPage({
 
   const activeOrganization = await getUserOrganization(user.id);
 
-  if (!canViewHistory(user, activeOrganization)) {
-    return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center">
-          <p className="text-sm font-semibold uppercase text-amber-700">Tính năng Pro</p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-950">Lịch sử cuộc họp</h1>
-          <p className="mt-3 text-slate-600">
-            Nâng cấp lên Pro để lưu và xem lại toàn bộ lịch sử meeting notes.
-          </p>
-          <Link
-            href="/pricing"
-            className="mt-6 inline-flex h-10 items-center rounded-md bg-blue-700 px-5 text-sm font-semibold text-white hover:bg-blue-800"
-          >
-            Xem plans và nâng cấp
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
   const notes = await prisma.meetingNote.findMany({
     where: activeOrganization
       ? { organizationId: activeOrganization.id }
@@ -48,54 +29,59 @@ export default async function HistoryPage({
   });
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-[1280px] px-6 py-12">
       <SearchScrollTarget highlightId={params.highlight || params.meeting} />
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-950">Lịch sử cuộc họp</h1>
-        <p className="mt-1 text-sm text-slate-600">
+      <div className="mb-8">
+        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
+          Meeting history
+        </p>
+        <h1 className="mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink">
+          Lịch sử cuộc họp
+        </h1>
+        <p className="mt-2 text-[16px] leading-[1.50] text-slate">
           {notes.length} cuộc họp đã lưu
         </p>
       </div>
 
       {notes.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
-          <p className="text-slate-600">Chưa có cuộc họp nào. Generate meeting notes đầu tiên!</p>
-          <Link
-            href="/app"
-            className="mt-4 inline-flex h-10 items-center rounded-md bg-blue-700 px-5 text-sm font-semibold text-white hover:bg-blue-800"
-          >
-            New Meeting
-          </Link>
-        </div>
+        <EmptyState
+          icon="📋"
+          title="Chưa có cuộc họp nào"
+          description="Generate meeting notes đầu tiên để xem lịch sử tại đây."
+          cta={{ label: "Tạo meeting đầu tiên", href: "/app" }}
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {notes.map((note: MeetingNoteModel) => {
             const parsed = tryParseNotes(note.notesJson);
             return (
               <div
                 key={note.id}
                 data-search-id={note.id}
-                className="rounded-lg border border-slate-200 bg-white p-5"
+                className="rounded-xl border border-hairline bg-canvas p-6"
               >
-                <div className="mb-3">
-                  <h2 className="font-semibold text-slate-950 line-clamp-2">{note.title}</h2>
-                  <p className="mt-1 text-xs text-slate-500">
+                <div className="mb-4">
+                  <h2 className="line-clamp-2 text-[20px] font-semibold leading-[1.40] text-ink">
+                    {note.title}
+                  </h2>
+                  <p className="mt-2 text-[14px] leading-[1.50] text-steel">
                     {formatDate(note.createdAt)} · {note.audioName}
                   </p>
                 </div>
 
                 {parsed ? (
                   <>
-                    <p className="mb-3 text-sm text-slate-600 line-clamp-3">
+                    <p className="mb-4 line-clamp-3 text-[14px] leading-[1.50] text-slate">
                       {parsed.executiveSummary[0] ?? ""}
                     </p>
-                    <div className="flex gap-2">
-                      <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="badge-beta">
                         {parsed.decisions.length} decisions
                       </span>
-                      <span className="rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                      <span className="badge-success">
                         {parsed.actionItems.length} actions
                       </span>
+                      <CopyFollowUpButton brief={formatFollowUpBrief(parsed)} />
                     </div>
                   </>
                 ) : null}

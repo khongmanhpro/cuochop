@@ -11,25 +11,31 @@ export default function SignupPage() {
   );
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#eef3f8] px-4">
-      <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-6">
-          <p className="text-sm font-semibold uppercase text-blue-700">cuochop</p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-950">Tạo tài khoản</h1>
-          <p className="mt-1 text-sm text-slate-500">Miễn phí, không cần thẻ tín dụng.</p>
+    <main className="flex min-h-screen items-center justify-center bg-surface px-6">
+      <div className="w-full max-w-sm rounded-xl border border-hairline bg-canvas p-8">
+        <div className="mb-8">
+          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
+            cuochop
+          </p>
+          <h1 className="mt-3 text-[24px] font-semibold leading-[1.30] text-ink">
+            Tạo tài khoản
+          </h1>
+          <p className="mt-2 text-[14px] leading-[1.50] text-steel">
+            Miễn phí, không cần thẻ tín dụng.
+          </p>
         </div>
 
         <OAuthButtons />
 
         <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-slate-200" />
-          <span className="text-xs font-medium uppercase text-slate-400">or</span>
-          <div className="h-px flex-1 bg-slate-200" />
+          <div className="h-px flex-1 bg-hairline" />
+          <span className="text-[12px] font-medium uppercase text-stone">or</span>
+          <div className="h-px flex-1 bg-hairline" />
         </div>
 
         <form action={action} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-semibold text-slate-900">
+            <label htmlFor="name" className="block text-[14px] font-semibold text-ink">
               Họ tên
             </label>
             <input
@@ -38,15 +44,15 @@ export default function SignupPage() {
               type="text"
               required
               autoComplete="name"
-              className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink outline-none focus:border-brand-blue-deep"
             />
             {state?.errors?.name ? (
-              <p className="mt-1 text-xs text-red-600">{state.errors.name[0]}</p>
+              <p className="mt-2 text-[13px] text-error">{state.errors.name[0]}</p>
             ) : null}
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-semibold text-slate-900">
+            <label htmlFor="email" className="block text-[14px] font-semibold text-ink">
               Email
             </label>
             <input
@@ -55,15 +61,15 @@ export default function SignupPage() {
               type="email"
               required
               autoComplete="email"
-              className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink outline-none focus:border-brand-blue-deep"
             />
             {state?.errors?.email ? (
-              <p className="mt-1 text-xs text-red-600">{state.errors.email[0]}</p>
+              <p className="mt-2 text-[13px] text-error">{state.errors.email[0]}</p>
             ) : null}
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-semibold text-slate-900">
+            <label htmlFor="password" className="block text-[14px] font-semibold text-ink">
               Mật khẩu
             </label>
             <input
@@ -72,15 +78,15 @@ export default function SignupPage() {
               type="password"
               required
               autoComplete="new-password"
-              className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink outline-none focus:border-brand-blue-deep"
             />
             {state?.errors?.password ? (
-              <p className="mt-1 text-xs text-red-600">{state.errors.password[0]}</p>
+              <p className="mt-2 text-[13px] text-error">{state.errors.password[0]}</p>
             ) : null}
           </div>
 
           {state?.message ? (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <p className="rounded-md border border-error/30 bg-error/10 px-3 py-2 text-[14px] text-error">
               {state.message}
             </p>
           ) : null}
@@ -88,15 +94,15 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="h-10 w-full rounded-md bg-blue-700 text-sm font-semibold text-white transition enabled:hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="button-primary w-full disabled:!bg-hairline disabled:!text-muted"
           >
             {isPending ? "Đang tạo tài khoản..." : "Tạo tài khoản miễn phí"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-600">
+        <p className="mt-6 text-center text-[14px] text-slate">
           Đã có tài khoản?{" "}
-          <Link href="/auth/login" className="font-semibold text-blue-700 hover:underline">
+          <Link href="/auth/login" className="font-semibold text-ink hover:underline">
             Đăng nhập
           </Link>
         </p>
@@ -110,13 +116,13 @@ function OAuthButtons() {
     <div className="space-y-2">
       <Link
         href="/api/auth/oauth/google"
-        className="flex h-10 w-full items-center justify-center rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        className="button-tertiary w-full"
       >
         Continue with Google
       </Link>
       <Link
         href="/api/auth/oauth/microsoft"
-        className="flex h-10 w-full items-center justify-center rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        className="button-tertiary w-full"
       >
         Continue with Microsoft
       </Link>

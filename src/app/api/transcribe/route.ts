@@ -7,7 +7,9 @@ import {
 } from "@/lib/upload-server";
 import { appApiError, createApiErrorResponse } from "@/lib/api-errors";
 import { getSession } from "@/lib/session";
+import { logError } from "@/lib/logger";
 import { prisma } from "@/lib/db";
+import { checkGeminiRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -21,6 +23,11 @@ export async function POST(request: Request) {
       throw appApiError("UNAUTHENTICATED", "Bạn cần đăng nhập để transcribe file.", 401);
     }
     userId = user.id;
+
+    const rateLimit = checkGeminiRateLimit(user.id);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterMs);
+    }
 
     const body: unknown = await request.json();
     const payload = isRecord(body) ? body : {};
@@ -86,6 +93,17 @@ export async function POST(request: Request) {
       transcript,
     });
   } catch (error) {
+    logError({
+      route: "/api/transcribe",
+      userId,
+      uploadId,
+      code:
+        error instanceof Error && "code" in error
+          ? String(error.code)
+          : "TRANSCRIPTION_FAILED",
+      message:
+        error instanceof Error ? error.message : "Transcription failed.",
+    });
     if (uploadId && userId) {
       await prisma.upload.updateMany({
         where: { id: uploadId, userId },

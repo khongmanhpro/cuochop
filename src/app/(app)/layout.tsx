@@ -2,11 +2,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { logout } from "@/app/actions/auth";
-import { FREE_MONTHLY_LIMIT, canViewHistory } from "@/lib/plans";
 import { getUserOrganization } from "@/lib/organizations";
 import { prisma } from "@/lib/db";
 import { NotificationBell } from "./notifications/notification-bell";
 import { GlobalSearch } from "@/components/global-search";
+import { AppNavTabs } from "./app-nav-tabs";
 
 export default async function AppLayout({
   children,
@@ -17,9 +17,6 @@ export default async function AppLayout({
   if (!user) redirect("/auth/login");
 
   const activeOrganization = await getUserOrganization(user.id);
-  const isPro = canViewHistory(user, activeOrganization);
-  const usageRemaining = Math.max(0, FREE_MONTHLY_LIMIT - user.usageThisMonth);
-  const showUpsellBanner = !isPro && usageRemaining <= 2;
   const [notifications, unreadCount] = await Promise.all([
     prisma.notification.findMany({
       where: { userId: user.id },
@@ -32,11 +29,14 @@ export default async function AppLayout({
   ]);
 
   return (
-    <div className="min-h-screen bg-[#eef3f8]">
-      {/* Top nav */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link href="/" className="text-sm font-bold text-blue-700">
+    <div className="min-h-screen bg-surface">
+      {/* Top nav — sticky white bar, hairline-soft bottom border */}
+      <header className="sticky top-0 z-30 border-b border-hairline-soft bg-canvas">
+        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
+          <Link
+            href="/"
+            className="text-[15px] font-semibold tracking-tight text-ink"
+          >
             cuochop
           </Link>
           <div className="flex items-center gap-3">
@@ -53,95 +53,38 @@ export default async function AppLayout({
                 createdAt: notification.createdAt.toISOString(),
               }))}
             />
-            <span className="text-sm text-slate-600">{user.name || user.email}</span>
+            <span className="text-[14px] text-slate">
+              {user.name || user.email}
+            </span>
             <form action={logout}>
               <button
                 type="submit"
-                className="text-sm text-slate-500 hover:text-slate-800 transition"
+                className="text-[14px] text-stone transition-colors hover:text-ink"
               >
                 Đăng xuất
               </button>
             </form>
           </div>
         </div>
-        {/* Sub nav */}
-        <div className="border-t border-slate-100 bg-slate-50">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-2 sm:px-6">
-            <nav className="flex gap-5">
-              <Link
-                href="/app"
-                className="text-sm font-semibold text-blue-700 hover:text-blue-800"
-              >
-                New Meeting
-              </Link>
-              <Link
-                href="/actions"
-                className="text-sm text-slate-600 hover:text-slate-900"
-              >
-                Actions
-              </Link>
-              <Link
-                href="/history"
-                className="text-sm text-slate-600 hover:text-slate-900"
-              >
-                History
-              </Link>
-              <Link
-                href="/settings/account"
-                className="text-sm text-slate-600 hover:text-slate-900"
-              >
-                Account
-              </Link>
+
+        {/* Sub nav — segmented tabs (underline style) */}
+        <div className="border-t border-hairline-soft bg-canvas">
+          <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-2">
+            <AppNavTabs
+              showTeam={Boolean(activeOrganization)}
+              showAudit={
+                activeOrganization?.role === "owner" ||
+                activeOrganization?.role === "admin"
+              }
+            />
+            <div className="flex items-center gap-2">
+              <span className="badge-success">Personal workspace</span>
               {activeOrganization ? (
-                <>
-                  <Link
-                    href="/settings/team"
-                    className="text-sm text-slate-600 hover:text-slate-900"
-                  >
-                    Team
-                  </Link>
-                  {activeOrganization.role === "owner" ||
-                  activeOrganization.role === "admin" ? (
-                    <Link
-                      href="/settings/audit"
-                      className="text-sm text-slate-600 hover:text-slate-900"
-                    >
-                      Audit
-                    </Link>
-                  ) : null}
-                </>
-              ) : null}
-            </nav>
-            {!isPro ? (
-              <div className="flex items-center gap-2">
-                {showUpsellBanner ? (
-                  <span className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
-                    {usageRemaining === 0
-                      ? "Đã hết lượt miễn phí"
-                      : `Còn ${usageRemaining} lượt`}{" "}
-                    ·{" "}
-                    <Link href="/pricing" className="underline">
-                      Nâng cấp Pro
-                    </Link>
-                  </span>
-                ) : (
-                  <span className="text-xs text-slate-500">
-                    Free · {usageRemaining}/{FREE_MONTHLY_LIMIT} còn lại
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="rounded border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
-                  {activeOrganization?.plan === "business" ? "Business" : "Pro"}
+                <span className="pill-tab">
+                  {activeOrganization.name}
                 </span>
-                {activeOrganization ? (
-                  <span className="rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
-                    {activeOrganization.name}
-                  </span>
-                ) : null}
-              </div>
-            )}
+              ) : null}
+            </div>
           </div>
         </div>
       </header>

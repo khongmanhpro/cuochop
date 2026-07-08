@@ -70,4 +70,28 @@ describe("negation detection", () => {
     );
     expect(result).toBeNull();
   });
+
+  test("detects chấp thuận vs bác bỏ", () => {
+    const result = detectNegation(
+      "Hội đồng chấp thuận ngân sách Q3",
+      "Hội đồng bác bỏ ngân sách Q3",
+    );
+    expect(result).not.toBeNull();
+  });
+
+  test("detects ký vs hủy ký", () => {
+    const result = detectNegation(
+      "Chúng ta sẽ ký hợp đồng với vendor A",
+      "Chúng ta sẽ hủy ký hợp đồng với vendor A",
+    );
+    expect(result).not.toBeNull();
+  });
+
+  test("detects chấp nhận vs từ chối", () => {
+    const result = detectNegation(
+      "PM chấp nhận đề xuất thay đổi scope",
+      "PM từ chối đề xuất thay đổi scope",
+    );
+    expect(result).not.toBeNull();
+  });
 });

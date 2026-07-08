@@ -1,200 +1,129 @@
 import Link from "next/link";
-import { CheckoutButton } from "./checkout-button";
-import { FREE_MONTHLY_LIMIT } from "@/lib/plans";
 
-const FREE_FEATURES = [
-  `${FREE_MONTHLY_LIMIT} cuộc họp/tháng`,
-  "Transcript và meeting notes cơ bản",
-  "Copy Markdown",
-  "Download .md",
-];
-
-const PRO_FEATURES = [
-  "Unlimited cuộc họp",
+const CORE_FEATURES = [
+  "Không giới hạn số lần tạo meeting notes trong app cá nhân",
   "Action Board qua mọi meeting",
-  "Sửa owner, deadline, priority, status",
-  "Decision Log",
-  "Follow-up Brief",
-  "Manager Digest",
-  "Download .docx management report",
+  "Lịch sử cuộc họp và Decision Log",
+  "Copy Follow-up Brief gửi team",
+  "Export Markdown và DOCX",
+  "Workspace/team tools giữ lại khi cần, nhưng không còn là điều kiện trả phí",
 ];
 
-const BUSINESS_FEATURES = [
-  "Team workspace",
-  "Shared Action Board",
-  "Manager Digest across team",
-  "Priority support",
+const NEXT_FEATURES = [
+  "Dashboard việc quá hạn, blocked, chưa có owner",
+  "Tìm kiếm mạnh hơn theo người, deadline, priority, quyết định",
+  "Template notes theo kiểu họp",
+  "Reminder cá nhân và backup/export dữ liệu",
 ];
 
 export default function PricingPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <header className="border-b border-slate-100 px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <Link href="/" className="text-sm font-bold text-blue-700">
+    <main className="min-h-screen bg-canvas">
+      {/* Top nav — sticky white bar, hairline-soft bottom border */}
+      <header className="sticky top-0 z-30 border-b border-hairline-soft bg-canvas">
+        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
+          <Link
+            href="/"
+            className="text-[15px] font-semibold tracking-tight text-ink"
+          >
             cuochop
           </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/auth/login" className="text-sm text-slate-600 hover:text-slate-900">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/auth/login"
+              className="text-[14px] font-medium text-slate transition-colors hover:text-ink"
+            >
               Đăng nhập
             </Link>
-            <Link
-              href="/auth/signup"
-              className="inline-flex h-8 items-center rounded-md bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"
-            >
-              Dùng miễn phí
+            <Link href="/auth/signup" className="button-primary">
+              Mở workspace
             </Link>
           </div>
         </div>
       </header>
 
-      <section className="px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-            Pricing cho manager
+      <section className="px-6 py-[80px]">
+        <div className="mx-auto max-w-[720px] text-center">
+          <p className="text-[14px] font-medium uppercase tracking-[0.08em] text-brand-coral">
+            Feature-first personal workspace
           </p>
-          <h1 className="mt-2 text-4xl font-semibold text-slate-950">
-            Trả tiền cho follow-through, không chỉ file notes
+          <h1 className="mt-4 text-[56px] font-semibold leading-[1.10] tracking-[-1.5px] text-ink">
+            Tính năng đã mở trong app
           </h1>
-          <p className="mt-3 text-lg leading-8 text-slate-600">
-            Free để thử chất lượng AI. Pro Manager để theo dõi việc phải làm,
-            blocker và quyết định qua nhiều cuộc họp. Business mở workspace
-            chung cho cả team.
+          <p className="mx-auto mt-6 max-w-[640px] text-[18px] font-medium leading-[1.50] text-slate">
+            cuochop hiện ưu tiên dùng cá nhân: mở toàn bộ tính năng lõi,
+            không dẫn người dùng qua checkout hay paywall.
           </p>
+          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link href="/auth/signup" className="button-primary">
+              Dùng ngay
+            </Link>
+            <Link href="/" className="button-secondary">
+              Về trang chủ
+            </Link>
+          </div>
         </div>
 
-        <div className="mx-auto mt-12 grid max-w-6xl gap-6 lg:grid-cols-3">
-          <PricingCard
-            name="Free"
-            price="$0"
-            suffix="mãi mãi"
-            description="Dành cho thử nghiệm và cuộc họp không thường xuyên."
-            features={FREE_FEATURES}
-            cta="Bắt đầu miễn phí"
-            href="/auth/signup"
-          />
-          <PricingCard
-            name="Pro Manager"
-            price="$19"
-            suffix="/tháng"
-            description="Dành cho founder/manager cần biến họp thành accountability."
-            features={PRO_FEATURES}
-            cta="Nâng cấp Pro"
-            tier="pro"
+        {/* 2-column tier cards — highlighted uses coral (rounded-hero), other uses card-base (rounded-xl) */}
+        <div className="mx-auto mt-16 grid max-w-[1280px] gap-6 lg:grid-cols-2">
+          <FeatureCard
+            title="Đã mở trong app"
+            items={CORE_FEATURES}
             highlighted
           />
-          <PricingCard
-            name="Business"
-            price="$49"
-            suffix="/tháng"
-            description="Dành cho team cần workspace chung và visibility qua nhiều người."
-            features={BUSINESS_FEATURES}
-            cta="Nâng cấp Business"
-            tier="business"
-          />
-        </div>
-
-        <div className="mx-auto mt-10 max-w-6xl rounded-lg border border-blue-100 bg-blue-50 p-5">
-          <h2 className="font-semibold text-slate-950">Team workspace is live</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Business gom meeting notes, Action Board, Decision Log và Manager
-            Digest theo workspace để manager nhìn được follow-through của cả team.
-          </p>
+          <FeatureCard title="Hướng phát triển tiếp theo" items={NEXT_FEATURES} />
         </div>
       </section>
     </main>
   );
 }
 
-function PricingCard({
-  name,
-  price,
-  suffix,
-  description,
-  features,
-  cta,
-  href,
-  tier,
+function FeatureCard({
+  title,
+  items,
   highlighted = false,
 }: {
-  name: string;
-  price: string;
-  suffix: string;
-  description: string;
-  features: string[];
-  cta: string;
-  href?: string;
-  tier?: "pro" | "business";
+  title: string;
+  items: string[];
   highlighted?: boolean;
 }) {
-  const ctaClasses = highlighted
-    ? "flex h-10 w-full items-center justify-center rounded-md bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:bg-blue-100"
-    : "flex h-10 w-full items-center justify-center rounded-md border border-slate-300 text-sm font-semibold text-slate-700 hover:border-blue-400 hover:text-blue-700 disabled:bg-slate-100";
+  if (highlighted) {
+    return (
+      <div className="rounded-hero bg-brand-coral p-[32px] text-on-dark">
+        <h2 className="text-[24px] font-semibold leading-[1.30] text-on-dark">
+          {title}
+        </h2>
+        <ul className="mt-8 space-y-3">
+          {items.map((item) => (
+            <li
+              key={item}
+              className="flex gap-2 text-[14px] leading-[1.50] text-on-dark/90"
+            >
+              <span className="text-on-dark">✓</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={
-        highlighted
-          ? "rounded-xl border-2 border-blue-700 bg-blue-700 p-8 text-white"
-          : "rounded-xl border border-slate-200 p-8"
-      }
-    >
-      <p
-        className={
-          highlighted
-            ? "text-xs font-bold uppercase tracking-wide text-blue-200"
-            : "text-xs font-bold uppercase tracking-wide text-slate-500"
-        }
-      >
-        {name}
-      </p>
-      <div className="mt-3 flex items-end gap-1">
-        <span
-          className={
-            highlighted
-              ? "text-4xl font-bold"
-              : "text-4xl font-bold text-slate-950"
-          }
-        >
-          {price}
-        </span>
-        <span
-          className={
-            highlighted ? "mb-1 text-sm text-blue-200" : "mb-1 text-sm text-slate-500"
-          }
-        >
-          {suffix}
-        </span>
-      </div>
-      <p className={highlighted ? "mt-3 text-sm text-blue-100" : "mt-3 text-sm text-slate-600"}>
-        {description}
-      </p>
-      <ul className="mt-6 space-y-3">
-        {features.map((feature) => (
+    <div className="rounded-xl border border-hairline bg-canvas p-[32px]">
+      <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
+        {title}
+      </h2>
+      <ul className="mt-8 space-y-3">
+        {items.map((item) => (
           <li
-            key={feature}
-            className={
-              highlighted
-                ? "flex items-center gap-2 text-sm text-blue-100"
-                : "flex items-center gap-2 text-sm text-slate-700"
-            }
+            key={item}
+            className="flex gap-2 text-[14px] leading-[1.50] text-charcoal"
           >
-            <span className={highlighted ? "text-white" : "text-emerald-500"}>
-              ✓
-            </span>
-            {feature}
+            <span className="text-success-text">✓</span>
+            <span>{item}</span>
           </li>
         ))}
       </ul>
-      {tier ? (
-        <CheckoutButton tier={tier} className={ctaClasses}>
-          {cta}
-        </CheckoutButton>
-      ) : (
-        <Link href={href || "/auth/signup"} className={`mt-8 ${ctaClasses}`}>
-          {cta}
-        </Link>
-      )}
     </div>
   );
 }

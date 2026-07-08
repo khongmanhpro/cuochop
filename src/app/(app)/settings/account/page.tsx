@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { ExportDataSection } from "@/components/export-data-section";
 import { disconnectOAuthProvider } from "./actions";
 
 const providers = [
@@ -41,30 +42,32 @@ export default async function AccountSettingsPage() {
         : "Password";
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
-      <div className="mb-6">
-        <p className="text-sm font-semibold uppercase text-blue-700">
+    <main className="mx-auto w-full max-w-[1280px] px-6 py-12">
+      <div className="mb-8">
+        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
           Account settings
         </p>
-        <h1 className="mt-1 text-3xl font-semibold text-slate-950">
+        <h1 className="mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink">
           Connected accounts
         </h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-[16px] leading-[1.50] text-slate">
           Signed in as {account.email} using {authMethodLabel}.
         </p>
       </div>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold text-slate-950">Sign-in methods</h2>
-        <div className="mt-4 space-y-3">
-          <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+      <section className="rounded-xl border border-hairline bg-canvas p-8">
+        <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
+          Sign-in methods
+        </h2>
+        <div className="mt-6 space-y-3">
+          <div className="flex items-center justify-between rounded-lg border border-hairline px-4 py-3">
             <div>
-              <p className="text-sm font-semibold text-slate-900">Password</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-[16px] font-semibold leading-[1.50] text-ink">Password</p>
+              <p className="text-[14px] leading-[1.50] text-steel">
                 {account.passwordAuthEnabled ? "Enabled" : "Not configured"}
               </p>
             </div>
-            <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
+            <span className={account.passwordAuthEnabled ? "badge-success" : "pill-tab"}>
               {account.passwordAuthEnabled ? "Connected" : "Unavailable"}
             </span>
           </div>
@@ -74,13 +77,13 @@ export default async function AccountSettingsPage() {
             return (
               <div
                 key={provider.id}
-                className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2"
+                className="flex items-center justify-between rounded-lg border border-hairline px-4 py-3"
               >
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-[16px] font-semibold leading-[1.50] text-ink">
                     {provider.label}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-[14px] leading-[1.50] text-steel">
                     {connected ? "Connected" : "Not connected"}
                   </p>
                 </div>
@@ -89,7 +92,7 @@ export default async function AccountSettingsPage() {
                     <input type="hidden" name="provider" value={provider.id} />
                     <button
                       type="submit"
-                      className="h-9 rounded-md border border-red-200 px-3 text-xs font-semibold text-red-700 hover:bg-red-50"
+                      className="button-tertiary h-9 px-4 text-[13px] !border-error !text-error"
                     >
                       Disconnect
                     </button>
@@ -97,7 +100,7 @@ export default async function AccountSettingsPage() {
                 ) : (
                   <Link
                     href={`/api/auth/oauth/${provider.id}`}
-                    className="h-9 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    className="button-tertiary h-9 px-4 text-[13px]"
                   >
                     Connect
                   </Link>
@@ -107,6 +110,10 @@ export default async function AccountSettingsPage() {
           })}
         </div>
       </section>
+
+      <div className="mt-8">
+        <ExportDataSection />
+      </div>
     </main>
   );
 }

@@ -1,110 +1,126 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { getSession } from "@/lib/session";
 
 const STEPS = [
   {
     step: "1",
-    title: "Ghi lại cuộc họp",
-    desc: "Upload file MP3, MP4, WAV hoặc M4A. cuochop transcribe tiếng Việt với timestamp và speaker labels.",
+    title: "Upload bản ghi họp",
+    desc: "MP3, MP4, WAV hoặc M4A. Hệ thống phiên âm tiếng Việt, gắn speaker và timestamp.",
   },
   {
     step: "2",
-    title: "Tách quyết định và việc phải làm",
-    desc: "AI trích xuất decisions, action items, owner, deadline, priority và blockers từ transcript.",
+    title: "Lấy quyết định & việc phải làm",
+    desc: "AI tách summary, decisions, action items — rà soát, bỏ việc ảo trước khi vào board.",
   },
   {
     step: "3",
     title: "Theo dõi đến khi xong",
-    desc: "Action Board đưa action items vào một nơi để xem việc quá hạn, blocked và chưa có owner.",
+    desc: "Bảng việc: owner, deadline, trạng thái, filter «Việc của tôi», export & backup.",
   },
 ];
 
 const FEATURES = [
   {
-    title: "Action Board",
-    desc: "Một nơi để xem toàn bộ việc cần làm sau mọi cuộc họp.",
+    title: "Bảng công việc",
+    desc: "Một nơi cho việc từ mọi cuộc họp — lọc quá hạn, blocked, chưa owner.",
   },
   {
-    title: "Owner & deadline",
-    desc: "Sửa owner, deadline, priority và status thay vì để việc nằm chết trong notes.",
+    title: "Lịch sử & tags",
+    desc: "Mở lại notes, đổi speaker, gắn thẻ, tìm kiếm Cmd+K.",
   },
   {
-    title: "Decision Log",
-    desc: "Tra lại quyết định đã chốt theo từng cuộc họp khi team cần đối chiếu.",
+    title: "Follow-up brief",
+    desc: "Copy recap gửi team: decisions, actions, blockers.",
   },
   {
-    title: "Follow-up Brief",
-    desc: "Copy nhanh recap gửi team: decisions, actions, blockers và câu hỏi còn mở.",
+    title: "Dữ liệu của công ty",
+    desc: "Self-host Docker, backup JSON/Markdown, không bắt buộc mua gói.",
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const user = await getSession();
+  const primaryHref = user ? "/app" : "/auth/login";
+  const primaryLabel = user ? "Vào workspace" : "Đăng nhập";
+
   return (
     <main className="min-h-screen bg-canvas">
-      {/* Top nav — sticky white bar, hairline-soft bottom border */}
-      <header className="sticky top-0 z-30 border-b border-hairline-soft bg-canvas">
-        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
-          <Logo width={160} height={42} className="shrink-0" />
-          <div className="flex items-center gap-3">
-            <Link
-              href="/auth/login"
-              className="text-[14px] font-medium text-slate transition-colors hover:text-ink"
-            >
-              Đăng nhập
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="button-primary"
-            >
-              Mở workspace
-            </Link>
+      <header className="app-header">
+        <div className="app-header-inner !h-16">
+          <Link
+            href={user ? "/app" : "/"}
+            className="shrink-0"
+            aria-label={user ? "Về workspace" : "Trang chủ"}
+          >
+            <Logo width={148} height={40} />
+          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {user ? (
+              <Link href="/app" className="button-primary">
+                Vào workspace
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="text-[14px] font-medium text-slate transition-colors hover:text-ink"
+                >
+                  Đăng nhập
+                </Link>
+                <Link href="/auth/signup" className="button-primary">
+                  Tạo tài khoản
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Hero band — 80px display, -2px letter-spacing, 1.10 leading, dual CTA */}
-      <section className="px-6 pb-[96px] pt-[96px] text-center">
-        <div className="mx-auto max-w-[960px]">
-          <p className="text-[14px] font-medium uppercase tracking-[0.08em] text-brand-coral">
-            Personal Action Tracker
+      <section className="px-4 pb-16 pt-14 sm:px-6 sm:pb-20 sm:pt-20">
+        <div className="mx-auto max-w-[800px] text-center">
+          <p className="page-eyebrow !normal-case tracking-[0.08em]">
+            Công cụ nội bộ · Meeting → Action
           </p>
-          <h1 className="mt-4 text-[80px] font-semibold leading-[1.10] tracking-[-2px] text-ink sm:text-[80px]">
+          <h1 className="mt-4 text-[clamp(32px,6vw,52px)] font-semibold leading-[1.12] tracking-[-1.2px] text-ink">
             Biến cuộc họp thành việc có người chịu trách nhiệm
           </h1>
-          <p className="mx-auto mt-6 max-w-[720px] text-[18px] font-medium leading-[1.50] text-slate">
-            cuochop tự động trích xuất quyết định, action items, owner,
-            deadline và biến chúng thành bảng theo dõi cho founder/manager.
+          <p className="mx-auto mt-5 max-w-[560px] text-[16px] leading-[1.55] text-slate sm:text-[17px]">
+            Dành cho team công ty: upload ghi âm, lấy notes tiếng Việt, theo dõi
+            action items đến khi xong — triển khai trên server của bạn.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/auth/signup" className="button-primary">
-              Mở workspace
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link href={primaryHref} className="button-primary min-w-[160px]">
+              {primaryLabel}
             </Link>
-            <Link href="/auth/login" className="button-secondary">
-              Đăng nhập
-            </Link>
+            {!user ? (
+              <Link href="/auth/signup" className="button-secondary min-w-[160px]">
+                Tạo tài khoản
+              </Link>
+            ) : (
+              <Link href="/actions" className="button-secondary min-w-[160px]">
+                Xem công việc
+              </Link>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Steps — surface section, card-base tiles (rounded-xl, hairline border) */}
-      <section className="border-t border-hairline-soft bg-surface px-6 py-[80px]">
-        <div className="mx-auto max-w-[1280px]">
-          <h2 className="text-center text-[40px] font-semibold leading-[1.20] tracking-[-1px] text-ink">
-            Từ transcript đến follow-through
+      <section className="border-t border-hairline-soft bg-surface px-4 py-14 sm:px-6 sm:py-16">
+        <div className="mx-auto max-w-[1100px]">
+          <h2 className="text-center text-[clamp(22px,3vw,32px)] font-semibold tracking-[-0.5px] text-ink">
+            Quy trình 3 bước
           </h2>
-          <div className="mt-12 grid gap-6 sm:grid-cols-3">
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {STEPS.map((item) => (
-              <div
-                key={item.step}
-                className="rounded-xl border border-hairline bg-canvas p-6"
-              >
-                <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-on-primary">
+              <div key={item.step} className="card-surface p-5 sm:p-6">
+                <div className="mb-4 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-[12px] font-semibold text-on-primary">
                   {item.step}
                 </div>
-                <h3 className="text-[20px] font-semibold leading-[1.40] text-ink">
+                <h3 className="text-[17px] font-semibold text-ink">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-[14px] leading-[1.50] text-slate">
+                <p className="mt-2 text-[14px] leading-[1.55] text-slate">
                   {item.desc}
                 </p>
               </div>
@@ -113,22 +129,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features — 4-column grid of card-base tiles */}
-      <section className="px-6 py-[80px]">
-        <div className="mx-auto max-w-[1280px]">
-          <h2 className="text-center text-[40px] font-semibold leading-[1.20] tracking-[-1px] text-ink">
-            Giải quyết phần đau nhất sau cuộc họp
+      <section className="px-4 py-14 sm:px-6 sm:py-16">
+        <div className="mx-auto max-w-[1100px]">
+          <h2 className="text-center text-[clamp(22px,3vw,32px)] font-semibold tracking-[-0.5px] text-ink">
+            Phù hợp team vận hành sau họp
           </h2>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((feature) => (
-              <div
-                key={feature.title}
-                className="rounded-xl border border-hairline bg-canvas p-5"
-              >
-                <h3 className="text-[20px] font-semibold leading-[1.40] text-ink">
+              <div key={feature.title} className="card-surface p-5">
+                <h3 className="text-[16px] font-semibold text-ink">
                   {feature.title}
                 </h3>
-                <p className="mt-2 text-[14px] leading-[1.50] text-slate">
+                <p className="mt-2 text-[14px] leading-[1.55] text-slate">
                   {feature.desc}
                 </p>
               </div>
@@ -137,33 +149,29 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Promo CTA card — coral, rounded-hero (32px), embedded white pill */}
-      <section className="px-6 py-[80px]">
-        <div className="mx-auto max-w-[1280px]">
-          <div className="rounded-hero bg-brand-coral px-[64px] py-[64px] text-center">
-            <h2 className="text-[40px] font-semibold leading-[1.20] tracking-[-1px] text-on-dark">
-              Đừng để cuộc họp kết thúc bằng một file notes bị quên
-            </h2>
-            <p className="mx-auto mt-4 max-w-[640px] text-[16px] leading-[1.50] text-on-dark/80">
-              Tập trung vào tính năng lõi: notes, decisions, action items,
-              lịch sử và export.
-            </p>
-            <Link
-              href="/auth/signup"
-              className="mt-8 inline-flex h-11 items-center rounded-full border border-on-dark/20 bg-canvas px-6 text-[14px] font-semibold text-ink transition-colors hover:bg-on-dark hover:text-ink"
-            >
-              Mở workspace
-            </Link>
-          </div>
+      <section className="border-t border-hairline-soft px-4 py-14 sm:px-6">
+        <div className="mx-auto max-w-[720px] text-center">
+          <h2 className="text-[clamp(22px,3vw,28px)] font-semibold tracking-[-0.4px] text-ink">
+            Sẵn sàng dùng trong team?
+          </h2>
+          <p className="mx-auto mt-3 max-w-[480px] text-[15px] leading-[1.55] text-slate">
+            Không paywall. Đăng nhập workspace, upload họp, theo dõi việc.
+          </p>
+          <Link
+            href={primaryHref}
+            className="button-primary mt-6 inline-flex min-w-[160px]"
+          >
+            {primaryLabel}
+          </Link>
         </div>
       </section>
 
-      {/* Footer region — dense black canvas */}
-      <footer className="bg-footer-bg px-6 py-[64px]">
-        <div className="mx-auto max-w-[1280px]">
-          <Logo width={140} height={38} className="mb-4 invert" />
-          <p className="text-[14px] text-muted">
-            © 2026 cuochop. Vietnamese AI Workspace.
+      <footer className="border-t border-hairline-soft bg-surface px-4 py-10 sm:px-6">
+        <div className="mx-auto flex max-w-[1100px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Logo width={120} height={32} />
+          <p className="text-[13px] text-steel">
+            © {new Date().getFullYear()} cuochop · Meeting notes & action
+            tracker cho nội bộ
           </p>
         </div>
       </footer>

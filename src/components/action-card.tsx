@@ -57,6 +57,7 @@ export function ActionCard({
 
   if (isEditing) {
     const initialDraft: ActionDraft = {
+      task: item.task,
       ownerId: item.ownerId ?? "",
       deadline: item.deadline,
       priority: item.priority,
@@ -117,10 +118,10 @@ export function ActionCard({
             disabled={isPending}
             onClick={() => onPatch({ status: quickStatus })}
           >
-            {isDone ? "Reopen" : "Done"}
+            {isDone ? "Mở lại" : "Xong"}
           </button>
           <button type="button" className={secondaryButtonClass} onClick={onEdit}>
-            Edit
+            Sửa
           </button>
         </div>
       </td>

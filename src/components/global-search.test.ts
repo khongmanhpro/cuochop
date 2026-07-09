@@ -13,9 +13,7 @@ describe("getSearchResultHref", () => {
       meetingId: "meeting-1",
     };
 
-    expect(getSearchResultHref(result)).toBe(
-      "/history?meeting=meeting-1&highlight=note-1&section=note",
-    );
+    expect(getSearchResultHref(result)).toBe("/history/meeting-1");
   });
 
   test("routes decision and action results to the source section", () => {

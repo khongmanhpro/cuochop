@@ -12,29 +12,29 @@ export default function SignupPage() {
   );
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface px-6">
-      <div className="w-full max-w-sm rounded-xl border border-hairline bg-canvas p-8">
+    <main className="auth-shell">
+      <div className="auth-card">
         <div className="mb-8">
-          <Logo width={160} height={42} className="mb-3" />
+          <Link href="/" aria-label="Trang chủ">
+            <Logo width={148} height={40} className="mb-4" />
+          </Link>
           <h1 className="text-[24px] font-semibold leading-[1.30] text-ink">
             Tạo tài khoản
           </h1>
-          <p className="mt-2 text-[14px] leading-[1.50] text-steel">
-            Miễn phí, không cần thẻ tín dụng.
+          <p className="mt-2 text-[14px] leading-[1.50] text-slate">
+            Dành cho team nội bộ — không cần thẻ tín dụng.
           </p>
         </div>
 
         <OAuthButtons />
 
-        <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-hairline" />
-          <span className="text-[12px] font-medium uppercase text-stone">or</span>
-          <div className="h-px flex-1 bg-hairline" />
+        <div className="auth-divider">
+          <span>hoặc</span>
         </div>
 
         <form action={action} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-[14px] font-semibold text-ink">
+            <label htmlFor="name" className="field-label">
               Họ tên
             </label>
             <input
@@ -43,15 +43,17 @@ export default function SignupPage() {
               type="text"
               required
               autoComplete="name"
-              className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink outline-none focus:border-brand-blue-deep"
+              className="field-input"
             />
             {state?.errors?.name ? (
-              <p className="mt-2 text-[13px] text-error">{state.errors.name[0]}</p>
+              <p className="mt-2 text-[13px] text-error">
+                {state.errors.name[0]}
+              </p>
             ) : null}
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-[14px] font-semibold text-ink">
+            <label htmlFor="email" className="field-label">
               Email
             </label>
             <input
@@ -60,15 +62,17 @@ export default function SignupPage() {
               type="email"
               required
               autoComplete="email"
-              className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink outline-none focus:border-brand-blue-deep"
+              className="field-input"
             />
             {state?.errors?.email ? (
-              <p className="mt-2 text-[13px] text-error">{state.errors.email[0]}</p>
+              <p className="mt-2 text-[13px] text-error">
+                {state.errors.email[0]}
+              </p>
             ) : null}
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-[14px] font-semibold text-ink">
+            <label htmlFor="password" className="field-label">
               Mật khẩu
             </label>
             <input
@@ -77,15 +81,17 @@ export default function SignupPage() {
               type="password"
               required
               autoComplete="new-password"
-              className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink outline-none focus:border-brand-blue-deep"
+              className="field-input"
             />
             {state?.errors?.password ? (
-              <p className="mt-2 text-[13px] text-error">{state.errors.password[0]}</p>
+              <p className="mt-2 text-[13px] text-error">
+                {state.errors.password[0]}
+              </p>
             ) : null}
           </div>
 
           {state?.message ? (
-            <p className="rounded-md border border-error/30 bg-error/10 px-3 py-2 text-[14px] text-error">
+            <p className="rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-[14px] text-error">
               {state.message}
             </p>
           ) : null}
@@ -93,15 +99,18 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="button-primary w-full disabled:!bg-hairline disabled:!text-muted"
+            className="button-primary w-full"
           >
-            {isPending ? "Đang tạo tài khoản..." : "Tạo tài khoản miễn phí"}
+            {isPending ? "Đang tạo…" : "Tạo tài khoản"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-[14px] text-slate">
           Đã có tài khoản?{" "}
-          <Link href="/auth/login" className="font-semibold text-ink hover:underline">
+          <Link
+            href="/auth/login"
+            className="font-semibold text-ink hover:underline"
+          >
             Đăng nhập
           </Link>
         </p>
@@ -113,17 +122,11 @@ export default function SignupPage() {
 function OAuthButtons() {
   return (
     <div className="space-y-2">
-      <Link
-        href="/api/auth/oauth/google"
-        className="button-tertiary w-full"
-      >
-        Continue with Google
+      <Link href="/api/auth/oauth/google" className="button-tertiary w-full">
+        Tiếp tục với Google
       </Link>
-      <Link
-        href="/api/auth/oauth/microsoft"
-        className="button-tertiary w-full"
-      >
-        Continue with Microsoft
+      <Link href="/api/auth/oauth/microsoft" className="button-tertiary w-full">
+        Tiếp tục với Microsoft
       </Link>
     </div>
   );

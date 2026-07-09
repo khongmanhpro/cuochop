@@ -13,6 +13,81 @@ import { getSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 
+export async function DELETE(
+  _request: Request,
+  ctx: RouteContext<"/api/action-items/[id]">,
+) {
+  try {
+    const user = await getSession();
+    if (!user) {
+      throw appApiError(
+        "UNAUTHENTICATED",
+        "Bạn cần đăng nhập để xóa action item.",
+        401,
+      );
+    }
+
+    const activeOrganization = await getUserOrganization(user.id);
+    const { id } = await ctx.params;
+    if (!id) {
+      throw appApiError(
+        "ACTION_ITEM_NOT_FOUND",
+        "Không tìm thấy action item.",
+        404,
+      );
+    }
+
+    const existingActionItem = await prisma.actionItem.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        userId: true,
+        organizationId: true,
+        task: true,
+      },
+    });
+
+    if (
+      !existingActionItem ||
+      !canUpdateActionItem({
+        userId: user.id,
+        organizationId: activeOrganization?.id ?? null,
+        actionItemUserId: existingActionItem.userId,
+        actionItemOrganizationId: existingActionItem.organizationId,
+      })
+    ) {
+      throw appApiError(
+        "ACTION_ITEM_NOT_FOUND",
+        "Không tìm thấy action item.",
+        404,
+      );
+    }
+
+    await prisma.actionItem.delete({ where: { id } });
+
+    await logAudit({
+      organizationId: existingActionItem.organizationId,
+      userId: user.id,
+      action: "delete",
+      entityType: "ActionItem",
+      entityId: existingActionItem.id,
+      before: {
+        id: existingActionItem.id,
+        task: existingActionItem.task,
+      },
+      ipAddress: getRequestIp(_request),
+    });
+
+    return Response.json({ ok: true, id });
+  } catch (error) {
+    return createApiErrorResponse(error, {
+      route: "/api/action-items/[id]",
+      fallbackCode: "ACTION_ITEM_NOT_FOUND",
+      fallbackMessage: "Không thể xóa action item.",
+    });
+  }
+}
+
 export async function PATCH(
   request: Request,
   ctx: RouteContext<"/api/action-items/[id]">,

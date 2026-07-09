@@ -6,8 +6,11 @@ import {
   buildDecisionCreatePayloads,
   computeManagerDigest,
   isActionItemStatus,
+  normalizeActionItemCreate,
   normalizeActionItemUpdate,
+  normalizeDeadlineInput,
   resolveOwnerId,
+  toDateInputValue,
 } from "./action-items";
 import type { MatchableMember } from "./action-items";
 
@@ -107,7 +110,7 @@ describe("action tracker helpers", () => {
       }),
     ).toEqual({
       ownerId: "user-2",
-      deadline: "21/05/2026",
+      deadline: "2026-05-21",
       priority: "Medium",
       status: "doing",
       notes: "Cần báo lại trước 17h",
@@ -266,5 +269,39 @@ describe("buildActionItemCreatePayloads with orgMembers", () => {
     });
 
     expect(payloads[0].ownerId).toBeNull();
+  });
+});
+
+describe("deadline + create/update helpers", () => {
+  test("normalizeDeadlineInput keeps ISO dates", () => {
+    expect(normalizeDeadlineInput("2026-07-15")).toBe("2026-07-15");
+  });
+
+  test("normalizeDeadlineInput parses Vietnamese day/month", () => {
+    expect(normalizeDeadlineInput("15/7/2026")).toBe("2026-07-15");
+  });
+
+  test("toDateInputValue returns empty for free text", () => {
+    expect(toDateInputValue("cuối tuần")).toBe("");
+    expect(toDateInputValue("2026-07-15")).toBe("2026-07-15");
+  });
+
+  test("normalizeActionItemCreate requires task", () => {
+    expect(() => normalizeActionItemCreate({ task: "" })).toThrow();
+    expect(normalizeActionItemCreate({ task: "Gửi báo giá", deadline: "2026-08-01" })).toMatchObject({
+      task: "Gửi báo giá",
+      deadline: "2026-08-01",
+      priority: "Medium",
+      status: "todo",
+    });
+  });
+
+  test("normalizeActionItemUpdate accepts task field", () => {
+    expect(
+      normalizeActionItemUpdate({ task: "Updated task", deadline: "2026-09-01" }),
+    ).toEqual({
+      task: "Updated task",
+      deadline: "2026-09-01",
+    });
   });
 });

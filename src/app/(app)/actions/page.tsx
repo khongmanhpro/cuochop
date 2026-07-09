@@ -191,34 +191,21 @@ export default async function ActionsPage({
   }));
 
   return (
-    <main className="mx-auto w-full max-w-[1280px] px-6 py-12">
+    <main className="page-container">
       <SearchScrollTarget highlightId={params.highlight || params.item || params.meeting} />
-      <div className="mb-8 overflow-hidden rounded-xl border border-hairline bg-canvas">
-        <div className="grid gap-0 lg:grid-cols-[1.35fr_0.65fr]">
-          <div className="p-8">
-            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
-              Personal Action Tracker
-            </p>
-            <h1 className="mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink">
-              Action Board
-            </h1>
-            <p className="mt-4 max-w-2xl text-[16px] leading-[1.50] text-slate">
-              Lọc việc theo owner, deadline, blocker; đổi status nhanh và xử lý hàng loạt từ mọi cuộc họp.
-            </p>
-          </div>
-          <div className="flex items-end bg-footer-bg p-8 text-on-dark">
-            <div>
-              <p className="text-[14px] text-muted">Next capture</p>
-              <Link
-                href="/app"
-                className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-on-dark px-5 text-[14px] font-semibold text-ink transition-colors hover:bg-canvas"
-              >
-                New Meeting
-              </Link>
-            </div>
-          </div>
+      <header className="page-header flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="page-eyebrow">Công việc</p>
+          <h1 className="page-title">Bảng việc</h1>
+          <p className="page-description">
+            Lọc theo owner, deadline, blocker; đổi trạng thái nhanh từ mọi cuộc
+            họp.
+          </p>
         </div>
-      </div>
+        <Link href="/app#new-meeting" className="button-primary shrink-0">
+          Tạo notes mới
+        </Link>
+      </header>
       <ActionsBoard
         initialItems={items}
         decisions={decisionItems}
@@ -240,6 +227,7 @@ export default async function ActionsPage({
         }
         isTeamContext={Boolean(activeOrganization)}
         initialDeadlineFilter={params.filter === "deadlines"}
+        currentUserId={user.id}
       />
     </main>
   );

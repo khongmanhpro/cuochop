@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       data: { usageThisMonth: { increment: 1 } },
     });
 
-    // Save to history
+    // Save to history (actions are persisted immediately after this — clients may triage)
     const meetingNote = await prisma.meetingNote.create({
       data: {
         userId: user.id,
@@ -103,6 +103,14 @@ export async function POST(request: Request) {
       },
     });
     const ipAddress = getRequestIp(request);
+    const createdActionItems: Array<{
+      id: string;
+      task: string;
+      deadline: string;
+      priority: string;
+      ownerId: string | null;
+      status: string;
+    }> = [];
 
     await logAudit({
       organizationId: activeOrganization?.id,
@@ -145,6 +153,14 @@ export async function POST(request: Request) {
       if (actionItems.length > 0) {
         for (const payload of actionItems) {
           const actionItem = await prisma.actionItem.create({ data: payload });
+          createdActionItems.push({
+            id: actionItem.id,
+            task: actionItem.task,
+            deadline: actionItem.deadline,
+            priority: actionItem.priority,
+            ownerId: actionItem.ownerId,
+            status: actionItem.status,
+          });
           await logAudit({
             organizationId: actionItem.organizationId,
             userId: user.id,
@@ -265,6 +281,9 @@ export async function POST(request: Request) {
       ok: true,
       notes,
       markdown,
+      meetingNoteId: meetingNote.id,
+      // Post-save triage: actions already in DB; client may discard via DELETE
+      actionItems: createdActionItems,
     });
   } catch (error) {
     return createApiErrorResponse(error, {

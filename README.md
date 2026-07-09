@@ -83,6 +83,18 @@ pnpm test
 pnpm build
 ```
 
+Docker (recommended when you run the app via Compose):
+
+```bash
+# Unit + integration tests in a Node 22 container
+pnpm test:docker
+# or: docker compose -f docker-compose.test.yml run --rm test
+
+# Rebuild & restart the app image after code changes
+pnpm docker:rebuild
+# or: docker compose up --build -d
+```
+
 ## Run With Docker
 
 Build and start the app with `.env.local`:

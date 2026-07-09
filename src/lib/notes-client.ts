@@ -1,11 +1,22 @@
 import { apiErrorFromBody, type ApiErrorResponseBody } from "./api-client";
 import type { VietnameseMeetingNotes, VietnameseMeetingTranscript } from "./gemini";
 
+export type GeneratedActionItemRef = {
+  id: string;
+  task: string;
+  deadline: string;
+  priority: string;
+  ownerId: string | null;
+  status: string;
+};
+
 export type GenerateNotesResponse =
   | {
       ok: true;
       notes: VietnameseMeetingNotes;
       markdown: string;
+      meetingNoteId?: string;
+      actionItems?: GeneratedActionItemRef[];
     }
   | {
       ok: false;

@@ -14,6 +14,7 @@ import {
   BulkActionBar,
   FilterControls,
 } from "@/components/action-board-sections";
+import { CreateActionForm } from "@/components/create-action-form";
 import {
   type ActionBoardItem,
   type ActionItemPatch,
@@ -44,6 +45,7 @@ export function ActionsBoard({
   conflicts = [],
   isTeamContext = false,
   initialDeadlineFilter = false,
+  currentUserId,
 }: {
   initialItems: ActionBoardItem[];
   decisions: DecisionLogItem[];
@@ -51,10 +53,13 @@ export function ActionsBoard({
   conflicts?: DecisionConflictItem[];
   isTeamContext?: boolean;
   initialDeadlineFilter?: boolean;
+  currentUserId?: string;
 }) {
   const [items, setItems] = useState(initialItems);
   const [filters, setFilters] = useState<Filters>({
     ...initialFilters,
+    // Personal default: show my work when we know the user id
+    owner: currentUserId ? currentUserId : "all",
     deadline: initialDeadlineFilter ? "next7" : "all",
   });
   const [sortMode, setSortMode] = useState<SortMode>("smart");
@@ -62,6 +67,7 @@ export function ActionsBoard({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const mineOnly = Boolean(currentUserId) && filters.owner === currentUserId;
 
   const digest = useMemo(
     () =>
@@ -231,13 +237,73 @@ export function ActionsBoard({
   }
 
   function resetFilters() {
-    setFilters(initialFilters);
+    setFilters({
+      ...initialFilters,
+      owner: currentUserId ? currentUserId : "all",
+    });
     setSortMode("smart");
   }
 
+  function toggleMineOnly() {
+    if (!currentUserId) return;
+    setFilters((current) => ({
+      ...current,
+      owner: current.owner === currentUserId ? "all" : currentUserId,
+      noOwner: false,
+    }));
+  }
+
+  const membersForCreate =
+    assignableMembers.length > 0
+      ? assignableMembers
+      : currentUserId
+        ? [{ id: currentUserId, label: "Tôi", email: "" }]
+        : [];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <ManagerDigest digest={digest} isTeamContext={isTeamContext} />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {currentUserId ? (
+          <div className="inline-flex self-start rounded-full border border-hairline bg-canvas p-1">
+            <button
+              type="button"
+              className={`rounded-full px-4 py-2 text-[13px] font-semibold transition ${
+                mineOnly
+                  ? "bg-primary text-on-primary"
+                  : "text-slate hover:text-ink"
+              }`}
+              onClick={toggleMineOnly}
+            >
+              Việc của tôi
+            </button>
+            <button
+              type="button"
+              className={`rounded-full px-4 py-2 text-[13px] font-semibold transition ${
+                !mineOnly
+                  ? "bg-primary text-on-primary"
+                  : "text-slate hover:text-ink"
+              }`}
+              onClick={() => updateFilter("owner", "all")}
+            >
+              Tất cả
+            </button>
+          </div>
+        ) : (
+          <div />
+        )}
+        <div className="sm:ml-auto">
+          <CreateActionForm
+            assignableMembers={membersForCreate}
+            currentUserId={currentUserId}
+            onCreated={(item) => {
+              setItems((current) => [item, ...current]);
+              setError(null);
+            }}
+          />
+        </div>
+      </div>
 
       <FilterControls
         filters={filters}

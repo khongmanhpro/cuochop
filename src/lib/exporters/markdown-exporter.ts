@@ -14,16 +14,20 @@ export function exportMeetingNotesMarkdown(
   };
 }
 
+/** Timestamp for export filenames in Asia/Ho_Chi_Minh (stable across host TZ). */
 export function formatExportTimestamp(date: Date) {
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
 
-  return `${year}${month}${day}-${hours}${minutes}`;
-}
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "00";
 
-function pad(value: number) {
-  return String(value).padStart(2, "0");
+  return `${get("year")}${get("month")}${get("day")}-${get("hour")}${get("minute")}`;
 }

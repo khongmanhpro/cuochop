@@ -11,7 +11,9 @@
     "start:prod": "node .next/standalone/server.js",
     "lint": "eslint",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:docker": "docker compose -f docker-compose.test.yml run --rm test",
+    "test:e2e": "playwright test",
+    "docker:rebuild": "docker compose up --build -d"
   },
   "dependencies": {
     "@google/genai": "^2.0.1",

@@ -4,10 +4,12 @@ import { useCallback, useState } from "react";
 
 export function CopyFollowUpButton({
   label = "Copy follow-up",
+  copiedLabel = "✓ Đã copy",
   brief,
   className,
 }: {
   label?: string;
+  copiedLabel?: string;
   brief: string;
   className?: string;
 }) {
@@ -42,7 +44,7 @@ export function CopyFollowUpButton({
         "inline-flex h-8 items-center gap-1.5 rounded-full border border-hairline bg-canvas px-3 text-xs font-semibold text-ink transition hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue-deep"
       }
     >
-      {copied ? "✓ Copied" : label}
+      {copied ? copiedLabel : label}
     </button>
   );
 }

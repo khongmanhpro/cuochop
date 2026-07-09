@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { getUserOrganization } from "@/lib/organizations";
 import { getSession } from "@/lib/session";
 import { EmptyState as SharedEmptyState } from "@/components/empty-state";
+import { CopyFollowUpButton } from "@/components/copy-follow-up-button";
+import { OnboardingBanner } from "@/components/onboarding-banner";
 
 const upcomingWindowDays = 7;
 const maxDashboardItems = 6;
@@ -124,39 +126,35 @@ export default async function AppPage() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-[1280px] space-y-8 px-6 py-12">
-      {/* Hero — canvas white card, heading-md, dual pill CTAs */}
-      <section className="rounded-xl border border-hairline bg-canvas p-8">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
-              Bảng tổng hợp mỗi ngày
-            </p>
-            <h1 className="mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink">
-              Hôm nay cần xử lý gì?
-            </h1>
-            <p className="mt-4 text-[16px] leading-[1.50] text-slate">
-              Gom việc quá hạn, blocker, quyết định mới và cuộc họp gần đây vào
-              một màn hình để vào app là biết việc ưu tiên ngay.
+    <main className="page-container space-y-6 sm:space-y-8">
+      <OnboardingBanner hasMeetings={meetings.length > 0} />
+
+      <section className="card-surface p-6 sm:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="page-header mb-0 max-w-2xl">
+            <p className="page-eyebrow">Tổng quan</p>
+            <h1 className="page-title">Hôm nay cần xử lý gì?</h1>
+            <p className="page-description">
+              Việc quá hạn, blocker, quyết định mới và cuộc họp gần đây — vào
+              app là biết ưu tiên.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <Link href="/actions" className="button-tertiary">
-              Mở Action Board
+              Công việc
             </Link>
             <a href="#new-meeting" className="button-primary">
-              Tạo notes mới
+              Tạo notes
             </a>
           </div>
         </div>
       </section>
 
-      {/* Metrics — 5-column grid, card-base tiles */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <MetricCard label="Open actions" value={openActions.length} accent />
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 sm:gap-4">
+        <MetricCard label="Việc đang mở" value={openActions.length} accent />
         <MetricCard label="Quá hạn" value={overdueActions.length} />
         <MetricCard label="7 ngày tới" value={upcomingActions.length} />
-        <MetricCard label="Blocked" value={blockedActions.length} />
+        <MetricCard label="Đang kẹt" value={blockedActions.length} />
         <MetricCard label="Chưa có owner" value={unownedActions.length} />
       </section>
 
@@ -175,9 +173,9 @@ export default async function AppPage() {
           items={upcomingActions}
         />
         <DashboardPanel
-          title="Blocked"
+          title="Đang kẹt (Blocked)"
           description="Các việc đang kẹt cần gỡ nút thắt."
-          empty="Không có blocker đang mở."
+          empty="Không có việc đang kẹt."
           items={blockedActions}
         />
         <DashboardPanel
@@ -190,19 +188,19 @@ export default async function AppPage() {
 
       {/* Decisions + Follow-up brief — 2-column, dark tile for brief */}
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-xl border border-hairline bg-surface p-8">
-          <div className="mb-6 flex items-start justify-between gap-3">
+        <section className="card-surface-muted p-5 sm:p-6">
+          <div className="mb-5 flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
+              <h2 className="text-[18px] font-semibold leading-[1.30] text-ink sm:text-[20px]">
                 Quyết định mới
               </h2>
-              <p className="mt-2 text-[14px] leading-[1.50] text-slate">
-                Những quyết định gần nhất để đối chiếu khi follow-up.
+              <p className="mt-1 text-[13px] leading-[1.50] text-slate sm:text-[14px]">
+                Đối chiếu nhanh khi follow-up.
               </p>
             </div>
             <Link
               href="/actions"
-              className="text-[14px] font-medium text-ink transition-colors hover:text-brand-blue-deep"
+              className="shrink-0 text-[13px] font-semibold text-brand-blue-deep hover:underline"
             >
               Xem tất cả
             </Link>
@@ -228,35 +226,44 @@ export default async function AppPage() {
           )}
         </section>
 
-        <section className="rounded-xl bg-footer-bg p-8">
-          <h2 className="text-[24px] font-semibold leading-[1.30] text-on-dark">
-            Follow-up brief nhanh
-          </h2>
-          <p className="mt-2 text-[14px] leading-[1.50] text-muted">
-            Copy nội dung này để gửi recap hoặc tự rà soát cuối ngày.
-          </p>
-          <pre className="mt-6 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-primary-soft p-4 text-[14px] leading-[1.50] text-on-dark">
+        <section className="rounded-xl bg-footer-bg p-5 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-[18px] font-semibold leading-[1.30] text-on-dark sm:text-[20px]">
+                Follow-up brief
+              </h2>
+              <p className="mt-1 text-[13px] leading-[1.50] text-muted sm:text-[14px]">
+                Copy để gửi recap hoặc rà soát cuối ngày.
+              </p>
+            </div>
+            <CopyFollowUpButton
+              label="Copy brief"
+              copiedLabel="✓ Đã copy"
+              brief={followUpLines.join("\n")}
+              className="inline-flex h-10 shrink-0 items-center rounded-full bg-on-dark px-5 text-[13px] font-semibold text-ink transition hover:bg-canvas"
+            />
+          </div>
+          <pre className="mt-5 max-h-80 overflow-auto whitespace-pre-wrap rounded-lg bg-primary-soft p-4 text-[13px] leading-[1.55] text-on-dark sm:text-[14px]">
             {followUpLines.join("\n")}
           </pre>
         </section>
       </section>
 
-      {/* Recent meetings — card-base */}
-      <section className="rounded-xl border border-hairline bg-canvas p-8">
-        <div className="mb-6 flex items-start justify-between gap-3">
+      <section className="card-surface p-5 sm:p-6">
+        <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
+            <h2 className="text-[18px] font-semibold leading-[1.30] text-ink sm:text-[20px]">
               Cuộc họp gần đây
             </h2>
-            <p className="mt-2 text-[14px] leading-[1.50] text-slate">
-              Mở lại notes, decisions và action items mới tạo.
+            <p className="mt-1 text-[13px] leading-[1.50] text-slate sm:text-[14px]">
+              Mở lại notes và action items.
             </p>
           </div>
           <Link
             href="/history"
-            className="text-[14px] font-medium text-ink transition-colors hover:text-brand-blue-deep"
+            className="shrink-0 text-[13px] font-semibold text-brand-blue-deep hover:underline"
           >
-            Xem lịch sử
+            Lịch sử
           </Link>
         </div>
         {meetings.length === 0 ? (
@@ -270,7 +277,7 @@ export default async function AppPage() {
             {meetings.map((meeting) => (
               <Link
                 key={meeting.id}
-                href={`/history?meeting=${meeting.id}`}
+                href={`/history/${meeting.id}`}
                 className="block rounded-xl border border-hairline bg-canvas p-5 transition-colors hover:border-ink"
               >
                 <h3 className="line-clamp-2 text-[16px] font-semibold leading-[1.40] text-ink">
@@ -293,20 +300,7 @@ export default async function AppPage() {
         )}
       </section>
 
-      {/* New meeting generator — surface card */}
-      <section
-        id="new-meeting"
-        className="scroll-mt-6 rounded-xl border border-hairline bg-surface p-8"
-      >
-        <div className="mb-6">
-          <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
-            Tạo meeting notes mới
-          </h2>
-          <p className="mt-2 text-[14px] leading-[1.50] text-slate">
-            Generator vẫn nằm ngay trong dashboard để ghi notes và tạo action
-            items nhanh.
-          </p>
-        </div>
+      <section id="new-meeting" className="scroll-mt-20">
         <MeetingNotesGenerator />
       </section>
     </main>
@@ -323,15 +317,15 @@ function MetricCard({
   accent?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-hairline bg-canvas p-5">
-      <p className="text-[14px] font-medium leading-[1.50] text-steel">
+    <div className="card-surface p-4 sm:p-5">
+      <p className="text-[13px] font-medium leading-[1.40] text-steel">
         {label}
       </p>
       <p
         className={
           accent
-            ? "mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-brand-coral"
-            : "mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink"
+            ? "mt-2 text-[28px] font-semibold leading-[1.2] tracking-[-0.5px] text-brand-coral sm:text-[32px]"
+            : "mt-2 text-[28px] font-semibold leading-[1.2] tracking-[-0.5px] text-ink sm:text-[32px]"
         }
       >
         {value}
@@ -352,21 +346,21 @@ function DashboardPanel({
   items: DashboardAction[];
 }) {
   return (
-    <section className="rounded-xl border border-hairline bg-canvas p-8">
-      <div className="mb-6 flex items-start justify-between gap-3">
+    <section className="card-surface p-5 sm:p-6">
+      <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
+          <h2 className="text-[18px] font-semibold leading-[1.30] text-ink sm:text-[20px]">
             {title}
           </h2>
-          <p className="mt-2 text-[14px] leading-[1.50] text-slate">
+          <p className="mt-1 text-[13px] leading-[1.50] text-slate sm:text-[14px]">
             {description}
           </p>
         </div>
         <Link
           href="/actions"
-          className="text-[14px] font-medium text-ink transition-colors hover:text-brand-blue-deep"
+          className="shrink-0 text-[13px] font-semibold text-brand-blue-deep hover:underline"
         >
-          Action Board
+          Xem board
         </Link>
       </div>
       {items.length === 0 ? (

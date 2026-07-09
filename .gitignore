@@ -52,3 +52,7 @@ next-env.d.ts
 
 # SQLite database
 data/
+
+# local package store / playwright artifacts
+.pnpm-store/
+test-results/

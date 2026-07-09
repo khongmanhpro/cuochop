@@ -52,15 +52,15 @@ export function MeetingNotesResult({
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase text-success-text">
-            Done
+            Xong
           </p>
           <h2 id="result-title" className="mt-1 text-2xl font-semibold">
-            {notes ? "Meeting notes generated" : "Transcription completed"}
+            {notes ? "Đã tạo meeting notes" : "Đã phiên âm xong"}
           </h2>
           <p className="mt-2 text-sm text-slate">
             {notes
-              ? "Markdown is ready to copy or download."
-              : "Transcript is available. Notes generation did not complete."}
+              ? "Markdown sẵn sàng để copy hoặc tải về."
+              : "Có transcript. Bước tạo notes chưa hoàn tất."}
           </p>
         </div>
         <div className="w-full max-w-2xl rounded-lg border border-hairline bg-surface p-3 xl:w-auto">
@@ -71,7 +71,7 @@ export function MeetingNotesResult({
               disabled={!canExportMarkdown}
               onClick={onCopyMarkdown}
             >
-              {copied ? "Copied" : "Copy Markdown"}
+              {copied ? "Đã copy" : "Copy Markdown"}
             </button>
             <button
               type="button"
@@ -79,7 +79,7 @@ export function MeetingNotesResult({
               disabled={!canExportMarkdown}
               onClick={onDownloadMarkdown}
             >
-              Download .md
+              Tải .md
             </button>
             <button
               type="button"
@@ -87,7 +87,7 @@ export function MeetingNotesResult({
               disabled={!canExportDocx}
               onClick={onDownloadDocx}
             >
-              {isExportingDocx ? "Exporting..." : "Download .docx"}
+              {isExportingDocx ? "Đang xuất…" : "Tải .docx"}
             </button>
             <button
               type="button"
@@ -95,7 +95,7 @@ export function MeetingNotesResult({
               disabled={!followUpBrief}
               onClick={onCopyFollowUp}
             >
-              {copiedFollowUp ? "Follow-up copied" : "Copy Follow-up"}
+              {copiedFollowUp ? "Đã copy follow-up" : "Copy follow-up"}
             </button>
           </div>
         </div>
@@ -122,24 +122,24 @@ export function MeetingNotesResult({
 
       <div className="mt-6 rounded-lg border border-success-bg bg-success-bg p-5">
         <h3 className="text-lg font-semibold text-success-text">
-          File is ready for transcription
+          File đã sẵn sàng
         </h3>
         <dl className="mt-4 grid gap-3 text-sm text-success-text lg:grid-cols-2">
           <ResultMeta label="Upload ID" value={uploadResult.uploadId} />
           <ResultMeta
-            label="Original name"
+            label="Tên file"
             value={uploadResult.originalName}
           />
           <ResultMeta
-            label="Stored path"
+            label="Đường dẫn"
             value={uploadResult.storedPath}
           />
           <ResultMeta
-            label="Size"
+            label="Kích thước"
             value={formatBytes(uploadResult.sizeBytes)}
           />
           <ResultMeta
-            label="Chunks"
+            label="Số chunk"
             value={String(uploadResult.totalChunks)}
           />
         </dl>
@@ -149,14 +149,14 @@ export function MeetingNotesResult({
 
       <div className="mt-6 rounded-lg border border-hairline">
         <article className="p-5">
-          <h3 className="text-lg font-semibold">Transcript preview</h3>
+          <h3 className="text-lg font-semibold">Transcript</h3>
           <dl className="mt-4 grid gap-3 text-sm text-charcoal sm:grid-cols-2">
             <ResultMeta
-              label="Duration"
+              label="Thời lượng"
               value={transcript.duration || "Chưa xác định"}
             />
             <ResultMeta
-              label="Speakers"
+              label="Người nói"
               value={transcript.speakers.join(", ")}
             />
           </dl>

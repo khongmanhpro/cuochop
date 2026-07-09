@@ -4,6 +4,10 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { ExportDataSection } from "@/components/export-data-section";
 import { disconnectOAuthProvider } from "./actions";
+import {
+  ChangePasswordForm,
+  DisplayNameForm,
+} from "./profile-forms";
 
 const providers = [
   { id: "google", label: "Google" },
@@ -18,6 +22,7 @@ export default async function AccountSettingsPage() {
     where: { id: user.id },
     select: {
       email: true,
+      name: true,
       passwordAuthEnabled: true,
       oauthAccounts: {
         select: {
@@ -39,35 +44,55 @@ export default async function AccountSettingsPage() {
       ? "Google"
       : user.authMethod === "microsoft"
         ? "Microsoft"
-        : "Password";
+        : "Mật khẩu";
 
   return (
-    <main className="mx-auto w-full max-w-[1280px] px-6 py-12">
-      <div className="mb-8">
-        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-brand-coral">
-          Account settings
+    <main className="page-container space-y-6 sm:space-y-8">
+      <header className="page-header">
+        <p className="page-eyebrow">Tài khoản</p>
+        <h1 className="page-title">Cài đặt</h1>
+        <p className="page-description">
+          {account.email} · đăng nhập bằng {authMethodLabel}.
         </p>
-        <h1 className="mt-3 text-[32px] font-semibold leading-[1.25] tracking-[-0.5px] text-ink">
-          Connected accounts
-        </h1>
-        <p className="mt-2 text-[16px] leading-[1.50] text-slate">
-          Signed in as {account.email} using {authMethodLabel}.
-        </p>
-      </div>
+      </header>
 
-      <section className="rounded-xl border border-hairline bg-canvas p-8">
+      <section className="rounded-xl border border-hairline bg-canvas p-6 sm:p-8">
         <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
-          Sign-in methods
+          Hồ sơ
+        </h2>
+        <div className="mt-6">
+          <DisplayNameForm initialName={account.name || ""} />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-hairline bg-canvas p-6 sm:p-8">
+        <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
+          Mật khẩu
+        </h2>
+        <div className="mt-6">
+          <ChangePasswordForm enabled={account.passwordAuthEnabled} />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-hairline bg-canvas p-6 sm:p-8">
+        <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
+          Phương thức đăng nhập
         </h2>
         <div className="mt-6 space-y-3">
           <div className="flex items-center justify-between rounded-lg border border-hairline px-4 py-3">
             <div>
-              <p className="text-[16px] font-semibold leading-[1.50] text-ink">Password</p>
+              <p className="text-[16px] font-semibold leading-[1.50] text-ink">
+                Mật khẩu
+              </p>
               <p className="text-[14px] leading-[1.50] text-steel">
-                {account.passwordAuthEnabled ? "Enabled" : "Not configured"}
+                {account.passwordAuthEnabled ? "Đã bật" : "Chưa cấu hình"}
               </p>
             </div>
-            <span className={account.passwordAuthEnabled ? "badge-success" : "pill-tab"}>
+            <span
+              className={
+                account.passwordAuthEnabled ? "badge-success" : "pill-tab"
+              }
+            >
               {account.passwordAuthEnabled ? "Connected" : "Unavailable"}
             </span>
           </div>
@@ -84,7 +109,7 @@ export default async function AccountSettingsPage() {
                     {provider.label}
                   </p>
                   <p className="text-[14px] leading-[1.50] text-steel">
-                    {connected ? "Connected" : "Not connected"}
+                    {connected ? "Đã kết nối" : "Chưa kết nối"}
                   </p>
                 </div>
                 {connected ? (
@@ -94,7 +119,7 @@ export default async function AccountSettingsPage() {
                       type="submit"
                       className="button-tertiary h-9 px-4 text-[13px] !border-error !text-error"
                     >
-                      Disconnect
+                      Ngắt kết nối
                     </button>
                   </form>
                 ) : (
@@ -102,7 +127,7 @@ export default async function AccountSettingsPage() {
                     href={`/api/auth/oauth/${provider.id}`}
                     className="button-tertiary h-9 px-4 text-[13px]"
                   >
-                    Connect
+                    Kết nối
                   </Link>
                 )}
               </div>
@@ -111,9 +136,30 @@ export default async function AccountSettingsPage() {
         </div>
       </section>
 
-      <div className="mt-8">
-        <ExportDataSection />
-      </div>
+      <section className="rounded-xl border border-hairline bg-canvas p-6 sm:p-8">
+        <h2 className="text-[24px] font-semibold leading-[1.30] text-ink">
+          Quyền riêng tư & dữ liệu
+        </h2>
+        <div className="mt-4 space-y-3 text-[15px] leading-[1.60] text-slate">
+          <p>
+            <strong className="text-ink">File audio/video</strong> được upload
+            tạm lên máy chủ (thư mục uploads) để Gemini phiên âm, rồi có thể bị
+            dọn khi hết hạn. App không dùng file đó để huấn luyện model của
+            cuochop.
+          </p>
+          <p>
+            <strong className="text-ink">Transcript & notes</strong> được gửi
+            tới Google Gemini để tạo ghi chú. Nội dung đã lưu (notes, action,
+            decision) nằm trong database SQLite trên server bạn triển khai.
+          </p>
+          <p>
+            <strong className="text-ink">Backup</strong> — tải JSON hoặc Markdown
+            bất kỳ lúc nào; import lại khi cần khôi phục.
+          </p>
+        </div>
+      </section>
+
+      <ExportDataSection />
     </main>
   );
 }

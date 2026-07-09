@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { signupNewUser } from "./helpers";
 
 /**
- * E2E for /history page: navigation, empty state, copy follow-up.
+ * E2E for /history page: navigation, empty state, detail 404.
  * Does NOT test full AI pipeline (requires Gemini API).
  */
 test.describe("/history — meeting history", () => {
@@ -41,5 +41,23 @@ test.describe("/history — meeting history", () => {
     await page.goto("/history");
     // Should show "0 cuộc họp đã lưu" for new user
     await expect(page.getByText(/0 cuộc họp đã lưu/)).toBeVisible();
+  });
+
+  test("unknown meeting detail returns not found for signed-in user", async ({
+    page,
+  }) => {
+    const creds = await signupNewUser(page);
+
+    if (page.url().includes("/auth/login")) {
+      await page.locator('input[name="email"]').fill(creds.email);
+      await page.locator('input[name="password"]').fill(creds.password);
+      await page.getByRole("button", { name: /đăng nhập|sign in/i }).first().click();
+      await page.waitForURL(/\/app/, { timeout: 15_000 });
+    }
+
+    await page.goto("/history/does-not-exist-meeting");
+    await expect(
+      page.getByText(/not found|không tìm thấy|404/i).first(),
+    ).toBeVisible({ timeout: 10_000 });
   });
 });

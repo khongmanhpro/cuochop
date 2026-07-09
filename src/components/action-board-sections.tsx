@@ -6,7 +6,9 @@ import {
   type ActionItemStatus,
 } from "@/lib/action-items";
 import { CopyFollowUpButton } from "@/components/copy-follow-up-button";
+import Link from "next/link";
 import { ActionCard } from "@/components/action-card";
+import { EmptyState } from "@/components/empty-state";
 import {
   type ActionBoardItem,
   type ActionItemPatch,
@@ -15,7 +17,11 @@ import {
   type Filters,
   type SortMode,
   controlClass,
+  formatDate,
+  isClearlyOverdue,
+  isDueWithinDays,
   pillButtonClass,
+  primaryButtonClass,
   secondaryButtonClass,
   statusLabels,
 } from "@/lib/actions-board-helpers";
@@ -44,63 +50,79 @@ export function FilterControls({
   brief: string;
 }) {
   return (
-    <section className="rounded-xl border border-hairline bg-canvas p-4 sm:p-5">
-      <div className="flex flex-col gap-3 border-b border-hairline-soft pb-4 sm:flex-row sm:items-end sm:justify-between">
+    <section className="card-surface p-4 sm:p-5">
+      <div className="flex flex-col gap-3 border-b border-hairline-soft pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-coral">Focus controls</p>
-          <h2 className="mt-1 text-xl font-semibold text-ink">Lọc đúng việc cần làm</h2>
-          <p className="mt-1 text-sm text-steel">
-            {filteredCount}/{totalCount} action items đang hiển thị.
+          <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-steel">
+            Bộ lọc
+          </p>
+          <p className="mt-1 text-[14px] text-slate">
+            <span className="font-semibold text-ink">{filteredCount}</span>
+            <span className="text-steel"> / {totalCount} việc</span>
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             className={pillButtonClass(filters.blocked)}
             onClick={() => updateFilter("blocked", !filters.blocked)}
           >
-            Blocked
+            Đang kẹt
           </button>
           <button
             type="button"
             className={pillButtonClass(filters.noOwner)}
             onClick={() => updateFilter("noOwner", !filters.noOwner)}
           >
-            No owner
+            Chưa owner
           </button>
           <button
             type="button"
             className={pillButtonClass(filters.deadline === "overdue")}
-            onClick={() => updateFilter("deadline", filters.deadline === "overdue" ? "all" : "overdue")}
+            onClick={() =>
+              updateFilter(
+                "deadline",
+                filters.deadline === "overdue" ? "all" : "overdue",
+              )
+            }
           >
-            Overdue
+            Quá hạn
           </button>
           {hasActiveFilters ? (
-            <button type="button" className={secondaryButtonClass} onClick={resetFilters}>
-              Reset
+            <button
+              type="button"
+              className="button-tertiary h-9 px-3 text-[13px]"
+              onClick={resetFilters}
+            >
+              Xóa lọc
             </button>
           ) : null}
+          <CopyFollowUpButton
+            label="Copy follow-up"
+            copiedLabel="✓ Đã copy"
+            brief={brief}
+          />
         </div>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <label className="text-sm font-medium text-charcoal xl:col-span-2">
-          Search
+        <label className="field-label xl:col-span-2">
+          Tìm kiếm
           <input
             className={controlClass}
             value={filters.query}
             onChange={(event) => updateFilter("query", event.target.value)}
-            placeholder="Task, note, meeting, owner..."
+            placeholder="Việc, ghi chú, họp, owner…"
           />
         </label>
-        <label className="text-sm font-medium text-charcoal">
-          Status
+        <label className="field-label">
+          Trạng thái
           <select
             className={controlClass}
             value={filters.status}
             onChange={(event) => updateFilter("status", event.target.value)}
           >
-            <option value="all">All status</option>
+            <option value="all">Mọi trạng thái</option>
             {ACTION_ITEM_STATUSES.map((status) => (
               <option key={status} value={status}>
                 {statusLabels[status]}
@@ -108,14 +130,14 @@ export function FilterControls({
             ))}
           </select>
         </label>
-        <label className="text-sm font-medium text-charcoal">
-          Priority
+        <label className="field-label">
+          Ưu tiên
           <select
             className={controlClass}
             value={filters.priority}
             onChange={(event) => updateFilter("priority", event.target.value)}
           >
-            <option value="all">All priority</option>
+            <option value="all">Mọi mức</option>
             {ACTION_ITEM_PRIORITIES.map((priority) => (
               <option key={priority} value={priority}>
                 {priority}
@@ -123,14 +145,14 @@ export function FilterControls({
             ))}
           </select>
         </label>
-        <label className="text-sm font-medium text-charcoal">
+        <label className="field-label">
           Owner
           <select
             className={controlClass}
             value={filters.owner}
             onChange={(event) => updateFilter("owner", event.target.value)}
           >
-            <option value="all">All owners</option>
+            <option value="all">Mọi người</option>
             {assignableMembers.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.label}
@@ -138,36 +160,35 @@ export function FilterControls({
             ))}
           </select>
         </label>
-        <label className="text-sm font-medium text-charcoal">
+        <label className="field-label">
           Deadline
           <select
             className={controlClass}
             value={filters.deadline}
-            onChange={(event) => updateFilter("deadline", event.target.value as DeadlineFilter)}
+            onChange={(event) =>
+              updateFilter("deadline", event.target.value as DeadlineFilter)
+            }
           >
-            <option value="all">All deadlines</option>
-            <option value="overdue">Overdue</option>
-            <option value="next7">Next 7 days</option>
-            <option value="unclear">Unclear</option>
+            <option value="all">Mọi deadline</option>
+            <option value="overdue">Quá hạn</option>
+            <option value="next7">7 ngày tới</option>
+            <option value="unclear">Chưa rõ</option>
           </select>
         </label>
-        <label className="text-sm font-medium text-charcoal">
-          Sort
+        <label className="field-label">
+          Sắp xếp
           <select
             className={controlClass}
             value={sortMode}
             onChange={(event) => setSortMode(event.target.value as SortMode)}
           >
-            <option value="smart">Smart focus</option>
+            <option value="smart">Ưu tiên thông minh</option>
             <option value="deadline">Deadline gần nhất</option>
-            <option value="priority">Priority cao</option>
+            <option value="priority">Ưu tiên cao</option>
             <option value="newest">Mới nhất</option>
-            <option value="status">Theo status</option>
+            <option value="status">Theo trạng thái</option>
           </select>
         </label>
-      </div>
-      <div className="mt-3 flex justify-end">
-        <CopyFollowUpButton label="Copy follow-up" brief={brief} />
       </div>
     </section>
   );
@@ -189,7 +210,7 @@ export function BulkActionBar({
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-hairline bg-footer-bg px-4 py-3 text-on-dark sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm font-medium">
-        Đã chọn {selectedCount} action item
+        Đã chọn {selectedCount} việc
         {selectedVisibleCount !== selectedCount ? ` (${selectedVisibleCount} trong bộ lọc hiện tại)` : ""}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -201,7 +222,7 @@ export function BulkActionBar({
             disabled={isPending}
             onClick={() => onBulkPatchStatus(status)}
           >
-            Set {statusLabels[status]}
+            Đặt {statusLabels[status]}
           </button>
         ))}
         <button
@@ -209,7 +230,7 @@ export function BulkActionBar({
           className="rounded-full border border-white/20 px-3 py-2 text-xs font-semibold text-on-dark transition hover:border-on-dark hover:text-on-dark"
           onClick={onClear}
         >
-          Clear
+          Bỏ chọn
         </button>
       </div>
     </section>
@@ -244,13 +265,17 @@ export function ActionItemsTable({
   onPatch: (id: string, payload: ActionItemPatch) => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-hairline bg-canvas">
+    <section className="card-surface overflow-hidden">
       <div className="flex flex-col gap-2 border-b border-hairline-soft px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-ink">{items.length} action items</h2>
-          <p className="mt-1 text-sm text-steel">Chọn nhiều việc để đổi status hàng loạt, hoặc mark done ngay trên từng dòng.</p>
+          <h2 className="text-[16px] font-semibold text-ink sm:text-[18px]">
+            {items.length} việc
+          </h2>
+          <p className="mt-0.5 text-[13px] text-steel">
+            Mobile: thẻ · Desktop: bảng · Chọn nhiều để đổi trạng thái
+          </p>
         </div>
-        <label className="inline-flex items-center gap-2 text-sm font-medium text-charcoal">
+        <label className="inline-flex items-center gap-2 text-[13px] font-medium text-charcoal">
           <input
             type="checkbox"
             className="h-4 w-4 rounded border-hairline text-primary focus:ring-brand-blue-deep"
@@ -258,24 +283,47 @@ export function ActionItemsTable({
             disabled={items.length === 0}
             onChange={(event) => onToggleAllVisible(event.target.checked)}
           />
-          Select visible
+          Chọn đang hiện
         </label>
       </div>
-      <div className="overflow-x-auto">
+
+      {/* Mobile card list */}
+      <div className="space-y-3 p-4 md:hidden">
+        {items.map((item) => (
+          <MobileActionCard
+            key={item.id}
+            item={item}
+            isPending={isPending}
+            isSelected={selectedIds.has(item.id)}
+            onSelect={(checked) => onToggleSelected(item.id, checked)}
+            onEdit={() => onEdit(item.id)}
+            onPatch={(payload) => onPatch(item.id, payload)}
+          />
+        ))}
+        {editingId ? (
+          <p className="rounded-lg border border-hairline bg-surface p-3 text-sm text-slate">
+            Đang sửa trên bảng desktop. Xoay ngang hoặc mở màn hình lớn hơn để chỉnh chi tiết, hoặc
+            bấm Done/Reopen trên thẻ.
+          </p>
+        ) : null}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[1120px] border-collapse text-left text-sm">
           <thead className="bg-surface text-steel">
             <tr>
-              <th className="w-12 px-4 py-3 font-semibold">Select</th>
-              <th className="px-4 py-3 font-semibold">Task</th>
+              <th className="w-12 px-4 py-3 font-semibold">Chọn</th>
+              <th className="px-4 py-3 font-semibold">Việc</th>
               <th className="px-4 py-3 font-semibold">Owner</th>
               <th className="px-4 py-3 font-semibold">Deadline</th>
-              <th className="px-4 py-3 font-semibold">Priority</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold">Ưu tiên</th>
+              <th className="px-4 py-3 font-semibold">Trạng thái</th>
               {isTeamContext ? (
-                <th className="px-4 py-3 font-semibold">Created by</th>
+                <th className="px-4 py-3 font-semibold">Người tạo</th>
               ) : null}
-              <th className="px-4 py-3 font-semibold">Source</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
+              <th className="px-4 py-3 font-semibold">Nguồn</th>
+              <th className="px-4 py-3 font-semibold">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -298,11 +346,90 @@ export function ActionItemsTable({
         </table>
       </div>
       {items.length === 0 ? (
-        <div className="px-4 py-12 text-center">
-          <p className="text-base font-semibold text-ink">Không có action item phù hợp.</p>
-          <p className="mt-2 text-sm text-steel">Thử reset filter hoặc mở rộng deadline window.</p>
+        <div className="p-4">
+          <EmptyState
+            icon="✅"
+            title="Không có việc phù hợp"
+            description="Thử bật «Tất cả», xóa lọc, hoặc thêm việc mới phía trên."
+            cta={{ label: "Về dashboard", href: "/app" }}
+          />
         </div>
       ) : null}
     </section>
+  );
+}
+
+function MobileActionCard({
+  item,
+  isPending,
+  isSelected,
+  onSelect,
+  onEdit,
+  onPatch,
+}: {
+  item: ActionBoardItem;
+  isPending: boolean;
+  isSelected: boolean;
+  onSelect: (checked: boolean) => void;
+  onEdit: () => void;
+  onPatch: (payload: ActionItemPatch) => void;
+}) {
+  const isDone = item.status === "done";
+  const overdue = isClearlyOverdue(item.deadline);
+  const soon = !overdue && isDueWithinDays(item.deadline, 7);
+
+  return (
+    <article
+      data-search-id={item.id}
+      className="rounded-xl border border-hairline bg-surface p-4"
+    >
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          className="mt-1 h-4 w-4 rounded border-hairline text-primary"
+          checked={isSelected}
+          onChange={(event) => onSelect(event.target.checked)}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold leading-6 text-ink">{item.task}</p>
+          <p className="mt-1 text-xs text-steel">
+            {item.ownerName} · {item.meetingTitle}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="pill-tab">{statusLabels[item.status as keyof typeof statusLabels] ?? item.status}</span>
+            <span className="pill-tab">{item.priority}</span>
+            <span
+              className={`pill-tab ${overdue ? "border-error text-error" : soon ? "border-brand-coral text-brand-coral" : ""}`}
+            >
+              {item.deadline || "Chưa deadline"}
+            </span>
+          </div>
+          <p className="mt-2 text-[11px] text-steel">{formatDate(item.createdAt)}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={isDone ? secondaryButtonClass : primaryButtonClass}
+              disabled={isPending}
+              onClick={() => onPatch({ status: isDone ? "todo" : "done" })}
+            >
+              {isDone ? "Mở lại" : "Xong"}
+            </button>
+            <button
+              type="button"
+              className={secondaryButtonClass}
+              onClick={onEdit}
+            >
+              Sửa
+            </button>
+            <Link
+              href={`/actions?highlight=${item.id}`}
+              className="button-tertiary h-10 px-3 text-sm"
+            >
+              Chi tiết
+            </Link>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }

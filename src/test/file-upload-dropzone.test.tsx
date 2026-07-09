@@ -6,7 +6,7 @@
  * Verifies:
  * - Renders file picker with drag&drop instructions
  * - Shows selected file name
- * - Shows "No file selected" when no file
+ * - Shows "Chưa chọn file" when no file
  * - Calls chooseFile when file is dropped
  * - Calls chooseFile when file is picked via input
  * - Applies dragging styles when isDragging=true
@@ -30,11 +30,11 @@ describe("FileUploadDropzone", () => {
     );
 
     expect(
-      screen.getByText("Drag and drop your recording here"),
+      screen.getByText("Kéo thả file ghi âm/video vào đây"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Choose File")).toBeInTheDocument();
+    expect(screen.getByText("Chọn file")).toBeInTheDocument();
     expect(
-      screen.getByText("No file selected"),
+      screen.getByText("Chưa chọn file"),
     ).toBeInTheDocument();
   });
 
@@ -50,7 +50,7 @@ describe("FileUploadDropzone", () => {
     );
 
     expect(screen.getByText("meeting.mp3")).toBeInTheDocument();
-    expect(screen.queryByText("No file selected")).not.toBeInTheDocument();
+    expect(screen.queryByText("Chưa chọn file")).not.toBeInTheDocument();
   });
 
   test("calls chooseFile when a file is dropped", () => {
@@ -64,7 +64,7 @@ describe("FileUploadDropzone", () => {
       />,
     );
 
-    const dropzone = screen.getByText("Drag and drop your recording here").closest("label")!;
+    const dropzone = screen.getByText("Kéo thả file ghi âm/video vào đây").closest("label")!;
     const file = new File(["audio"], "dropped.wav", { type: "audio/wav" });
 
     fireEvent.drop(dropzone, {
@@ -85,7 +85,7 @@ describe("FileUploadDropzone", () => {
       />,
     );
 
-    const input = screen.getByLabelText(/Drag and drop your recording here/) as HTMLInputElement;
+    const input = screen.getByLabelText(/Kéo thả file ghi âm/) as HTMLInputElement;
     const file = new File(["audio"], "picked.m4a", { type: "audio/mp4" });
 
     fireEvent.change(input, { target: { files: [file] } });
@@ -103,7 +103,7 @@ describe("FileUploadDropzone", () => {
       />,
     );
 
-    const dropzone = screen.getByText("Drag and drop your recording here").closest("label")!;
+    const dropzone = screen.getByText("Kéo thả file ghi âm/video vào đây").closest("label")!;
     expect(dropzone.className).toContain("border-brand-blue-deep");
     expect(dropzone.className).toContain("bg-brand-blue-200/40");
   });
@@ -118,7 +118,7 @@ describe("FileUploadDropzone", () => {
       />,
     );
 
-    const dropzone = screen.getByText("Drag and drop your recording here").closest("label")!;
+    const dropzone = screen.getByText("Kéo thả file ghi âm/video vào đây").closest("label")!;
     expect(dropzone.className).toContain("border-stone");
     expect(dropzone.className).toContain("bg-surface");
   });
@@ -134,7 +134,7 @@ describe("FileUploadDropzone", () => {
       />,
     );
 
-    const dropzone = screen.getByText("Drag and drop your recording here").closest("label")!;
+    const dropzone = screen.getByText("Kéo thả file ghi âm/video vào đây").closest("label")!;
     fireEvent.dragOver(dropzone);
     expect(setIsDragging).toHaveBeenCalledWith(true);
   });
@@ -150,7 +150,7 @@ describe("FileUploadDropzone", () => {
       />,
     );
 
-    const dropzone = screen.getByText("Drag and drop your recording here").closest("label")!;
+    const dropzone = screen.getByText("Kéo thả file ghi âm/video vào đây").closest("label")!;
     fireEvent.dragLeave(dropzone);
     expect(setIsDragging).toHaveBeenCalledWith(false);
   });

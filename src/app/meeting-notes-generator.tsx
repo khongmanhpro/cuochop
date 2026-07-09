@@ -12,6 +12,7 @@ import {
   ErrorAlert,
   MeetingNotesResult,
 } from "@/components/meeting-notes-result";
+import { ActionTriagePanel } from "@/components/action-triage-panel";
 
 export function MeetingNotesGenerator() {
   const pipeline = useMeetingNotesPipeline(defaultModel);
@@ -28,6 +29,8 @@ export function MeetingNotesGenerator() {
     transcript,
     notes,
     markdown,
+    meetingNoteId,
+    generatedActionItems,
     isDragging,
     copied,
     copiedFollowUp,
@@ -55,38 +58,34 @@ export function MeetingNotesGenerator() {
   const showResults = stage === "done" && uploadResult && transcript;
 
   return (
-    <main className="min-h-screen bg-surface px-4 py-8 text-ink sm:px-6 lg:px-8">
-      <section className="mx-auto w-full max-w-5xl rounded-xl border border-hairline bg-canvas shadow-sm">
-        <div className="border-b border-hairline px-5 py-6 sm:px-8 lg:px-10">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase text-brand-coral">
-                Vietnamese AI workspace
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold text-ink sm:text-4xl">
-                Meeting Notes Generator for Vietnamese
-              </h1>
-              <p className="mt-4 max-w-3xl text-base leading-7 text-slate sm:text-lg">
-                Upload an audio or video file to generate Vietnamese meeting
-                notes with speaker labels, timestamps, summaries, decisions,
-                and action items.
+    <div className="embedded-panel text-ink">
+      <section className="card-surface overflow-hidden">
+        <div className="border-b border-hairline-soft px-5 py-5 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="page-eyebrow">Tạo notes</p>
+              <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.3px] text-ink sm:text-[24px]">
+                Ghi chú cuộc họp từ file ghi âm
+              </h2>
+              <p className="mt-2 max-w-2xl text-[14px] leading-[1.55] text-slate">
+                Upload MP3/MP4/WAV/M4A — hệ thống phiên âm, tóm tắt, tách quyết
+                định và action items.
               </p>
             </div>
-            <div className="badge-success">
-              Local upload mode
-            </div>
+            <span className="badge-success shrink-0 self-start">
+              Upload local
+            </span>
           </div>
         </div>
 
-        <div className="space-y-8 px-5 py-6 sm:px-8 lg:px-10">
+        <div className="space-y-8 px-5 py-6 sm:px-6">
           <section aria-labelledby="upload-title" className="space-y-4">
             <div>
               <h2 id="upload-title" className="text-lg font-semibold">
-                Audio or video file
+                File âm thanh / video
               </h2>
               <p className="mt-1 text-sm text-slate">
-                Choose a Vietnamese meeting recording to preview the note
-                generation flow.
+                Chọn bản ghi cuộc họp tiếng Việt để tạo notes và action items.
               </p>
             </div>
 
@@ -150,27 +149,35 @@ export function MeetingNotesGenerator() {
           </section>
 
           {showResults ? (
-            <MeetingNotesResult
-              uploadResult={uploadResult!}
-              transcript={transcript!}
-              notes={notes}
-              markdown={markdown}
-              copied={copied}
-              copiedFollowUp={copiedFollowUp}
-              exportError={exportError}
-              notesError={notesError}
-              isExportingDocx={isExportingDocx}
-              onCopyMarkdown={handleCopyMarkdown}
-              onCopyFollowUp={handleCopyFollowUp}
-              onDownloadMarkdown={handleDownloadMarkdown}
-              onDownloadDocx={handleDownloadDocx}
-            />
+            <>
+              <MeetingNotesResult
+                uploadResult={uploadResult!}
+                transcript={transcript!}
+                notes={notes}
+                markdown={markdown}
+                copied={copied}
+                copiedFollowUp={copiedFollowUp}
+                exportError={exportError}
+                notesError={notesError}
+                isExportingDocx={isExportingDocx}
+                onCopyMarkdown={handleCopyMarkdown}
+                onCopyFollowUp={handleCopyFollowUp}
+                onDownloadMarkdown={handleDownloadMarkdown}
+                onDownloadDocx={handleDownloadDocx}
+              />
+              {meetingNoteId && generatedActionItems.length > 0 ? (
+                <ActionTriagePanel
+                  meetingNoteId={meetingNoteId}
+                  initialItems={generatedActionItems}
+                />
+              ) : null}
+            </>
           ) : (
             <EmptyResultState />
           )}
         </div>
       </section>
-    </main>
+    </div>
   );
 }
 
@@ -183,7 +190,7 @@ function EmptyResultState() {
       <div className="rounded-lg border border-hairline bg-surface p-5">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase text-slate">
-            Waiting for recording
+            Chưa có file
           </p>
           <h2
             id="empty-result-title"
@@ -192,23 +199,22 @@ function EmptyResultState() {
             Kết quả sẽ hiển thị tại đây
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate">
-            Chọn file MP3, MP4, WAV hoặc M4A rồi bấm Generate Meeting
-            Notes. App sẽ upload theo chunk, transcribe bằng Gemini, sau
-            đó tạo notes và Markdown.
+            Chọn file MP3, MP4, WAV hoặc M4A rồi bấm &quot;Tạo meeting notes&quot;.
+            App upload theo chunk, phiên âm bằng Gemini, rồi tạo notes.
           </p>
         </div>
         <div className="mt-5 grid gap-3 text-sm text-slate sm:grid-cols-3">
           <div className="rounded-md border border-hairline bg-canvas px-3 py-3">
-            <p className="font-semibold text-ink">1. Upload</p>
-            <p className="mt-1 leading-5">Tải file theo chunk an toàn.</p>
+            <p className="font-semibold text-ink">1. Tải lên</p>
+            <p className="mt-1 leading-5">Upload file theo chunk an toàn.</p>
           </div>
           <div className="rounded-md border border-hairline bg-canvas px-3 py-3">
-            <p className="font-semibold text-ink">2. Transcribe</p>
-            <p className="mt-1 leading-5">Tạo transcript có speaker và timestamp.</p>
+            <p className="font-semibold text-ink">2. Phiên âm</p>
+            <p className="mt-1 leading-5">Transcript có speaker và timestamp.</p>
           </div>
           <div className="rounded-md border border-hairline bg-canvas px-3 py-3">
-            <p className="font-semibold text-ink">3. Export</p>
-            <p className="mt-1 leading-5">Copy Markdown, tải `.md` hoặc `.docx`.</p>
+            <p className="font-semibold text-ink">3. Xuất</p>
+            <p className="mt-1 leading-5">Copy Markdown, tải .md hoặc .docx.</p>
           </div>
         </div>
       </div>

@@ -302,15 +302,17 @@ export function GlobalSearch() {
 }
 
 export function getSearchResultHref(result: SearchResult): string {
+  if (result.type === "note") {
+    return `/history/${result.meetingId}`;
+  }
+
   const params = new URLSearchParams({
     meeting: result.meetingId,
     highlight: result.id,
     section: result.type,
   });
 
-  return result.type === "note"
-    ? `/history?${params.toString()}`
-    : `/actions?${params.toString()}`;
+  return `/actions?${params.toString()}`;
 }
 
 function SearchIcon() {

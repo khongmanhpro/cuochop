@@ -21,38 +21,42 @@ export default function LoginPage({
   const oauthMessage = formatOAuthMessage(params.oauth);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface px-6">
-      <div className="w-full max-w-sm rounded-xl border border-hairline bg-canvas p-8">
+    <main className="auth-shell">
+      <div className="auth-card">
         <div className="mb-8">
-          <Logo width={160} height={42} className="mb-3" />
+          <Link href="/" aria-label="Trang chủ">
+            <Logo width={148} height={40} className="mb-4" />
+          </Link>
           <h1 className="text-[24px] font-semibold leading-[1.30] text-ink">
             Đăng nhập
           </h1>
+          <p className="mt-2 text-[14px] leading-[1.50] text-slate">
+            Vào workspace để xử lý ghi chú và công việc sau họp.
+          </p>
         </div>
 
         <OAuthButtons />
 
-        <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-hairline" />
-          <span className="text-[12px] font-medium uppercase text-stone">or</span>
-          <div className="h-px flex-1 bg-hairline" />
+        <div className="auth-divider">
+          <span>hoặc</span>
         </div>
 
         {linkProvider ? (
-          <p className="mb-4 rounded-md border border-brand-blue-200 bg-brand-blue-200/40 px-3 py-2 text-[14px] text-brand-blue-deep">
-            Nhập mật khẩu cho {params.email} để liên kết tài khoản {linkProvider}.
+          <p className="mb-4 rounded-lg border border-brand-blue-200 bg-brand-blue-200/40 px-3 py-2 text-[14px] text-brand-blue-deep">
+            Nhập mật khẩu cho {params.email} để liên kết tài khoản{" "}
+            {linkProvider}.
           </p>
         ) : null}
 
         {oauthMessage ? (
-          <p className="mb-4 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-[14px] text-error">
+          <p className="mb-4 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-[14px] text-error">
             {oauthMessage}
           </p>
         ) : null}
 
         <form action={action} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-[14px] font-semibold text-ink">
+            <label htmlFor="email" className="field-label">
               Email
             </label>
             <input
@@ -62,12 +66,12 @@ export default function LoginPage({
               required
               autoComplete="email"
               defaultValue={params.email ?? ""}
-              className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink outline-none focus:border-brand-blue-deep"
+              className="field-input"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-[14px] font-semibold text-ink">
+            <label htmlFor="password" className="field-label">
               Mật khẩu
             </label>
             <input
@@ -76,12 +80,12 @@ export default function LoginPage({
               type="password"
               required
               autoComplete="current-password"
-              className="mt-2 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-[14px] text-ink outline-none focus:border-brand-blue-deep"
+              className="field-input"
             />
           </div>
 
           {state?.message ? (
-            <p className="rounded-md border border-error/30 bg-error/10 px-3 py-2 text-[14px] text-error">
+            <p className="rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-[14px] text-error">
               {state.message}
             </p>
           ) : null}
@@ -89,16 +93,19 @@ export default function LoginPage({
           <button
             type="submit"
             disabled={isPending}
-            className="button-primary w-full disabled:!bg-hairline disabled:!text-muted"
+            className="button-primary w-full"
           >
-            {isPending ? "Đang đăng nhập..." : "Đăng nhập"}
+            {isPending ? "Đang đăng nhập…" : "Đăng nhập"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-[14px] text-slate">
           Chưa có tài khoản?{" "}
-          <Link href="/auth/signup" className="font-semibold text-ink hover:underline">
-            Đăng ký miễn phí
+          <Link
+            href="/auth/signup"
+            className="font-semibold text-ink hover:underline"
+          >
+            Đăng ký
           </Link>
         </p>
       </div>
@@ -109,17 +116,11 @@ export default function LoginPage({
 function OAuthButtons() {
   return (
     <div className="space-y-2">
-      <Link
-        href="/api/auth/oauth/google"
-        className="button-tertiary w-full"
-      >
-        Continue with Google
+      <Link href="/api/auth/oauth/google" className="button-tertiary w-full">
+        Tiếp tục với Google
       </Link>
-      <Link
-        href="/api/auth/oauth/microsoft"
-        className="button-tertiary w-full"
-      >
-        Continue with Microsoft
+      <Link href="/api/auth/oauth/microsoft" className="button-tertiary w-full">
+        Tiếp tục với Microsoft
       </Link>
     </div>
   );
@@ -135,10 +136,13 @@ function formatOAuthMessage(value?: string) {
   if (value === "config_missing") {
     return "Đăng nhập OAuth chưa được cấu hình. Vui lòng kiểm tra Client ID và Client Secret.";
   }
-  if (value === "missing_code") return "Không nhận được mã xác thực từ nhà cung cấp.";
+  if (value === "missing_code")
+    return "Không nhận được mã xác thực từ nhà cung cấp.";
   if (value === "invalid_state") return "Phiên đăng nhập OAuth không hợp lệ.";
-  if (value === "token_exchange_failed") return "Không đổi được mã xác thực OAuth.";
-  if (value === "profile_failed") return "Không lấy được thông tin tài khoản OAuth.";
+  if (value === "token_exchange_failed")
+    return "Không đổi được mã xác thực OAuth.";
+  if (value === "profile_failed")
+    return "Không lấy được thông tin tài khoản OAuth.";
   if (value === "email_unverified") return "Email OAuth chưa được xác minh.";
   return null;
 }

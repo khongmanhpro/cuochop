@@ -41,17 +41,17 @@ export function FileUploadDropzone({
       <span className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <span>
           <span className="block text-base font-semibold text-ink">
-            Drag and drop your recording here
+            Kéo thả file ghi âm/video vào đây
           </span>
           <span className="mt-1 block text-sm text-slate">
-            or use the file picker to select MP3, MP4, WAV, or M4A.
+            hoặc chọn file MP3, MP4, WAV, M4A.
           </span>
           <span className="mt-3 block max-w-full truncate rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-charcoal">
-            {selectedFile ? selectedFile.name : "No file selected"}
+            {selectedFile ? selectedFile.name : "Chưa chọn file"}
           </span>
         </span>
         <span className="button-primary h-11 px-4 text-sm">
-          Choose File
+          Chọn file
         </span>
       </span>
     </label>

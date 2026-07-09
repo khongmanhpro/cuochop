@@ -256,6 +256,83 @@ describe("/api/action-items/[id] PATCH — integration", () => {
     expect(body.error.code).toBe("INVALID_ACTION_ITEM_UPDATE");
   });
 
+  test("POST creates manual action item", async () => {
+    const user = await createTestUser({ email: "creator@test.com" });
+    await setAuthCookie(user.id);
+
+    const { POST } = await import("../app/api/action-items/route");
+    const response = await POST(
+      new Request("http://localhost/api/action-items", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          task: "Gửi báo giá",
+          deadline: "2026-08-10",
+          priority: "High",
+          ownerId: user.id,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.ok).toBe(true);
+    expect(body.actionItem.task).toBe("Gửi báo giá");
+    expect(body.actionItem.deadline).toBe("2026-08-10");
+    expect(body.actionItem.priority).toBe("High");
+    expect(body.actionItem.meetingTitle).toBe("Việc thủ công");
+
+    const prisma = await getPrisma();
+    const stored = await prisma.actionItem.findUnique({
+      where: { id: body.actionItem.id },
+    });
+    expect(stored?.task).toBe("Gửi báo giá");
+  });
+
+  test("DELETE removes action item for owner", async () => {
+    const user = await createTestUser({ email: "deleter@test.com" });
+    const meeting = await seedMeetingNote(user.id);
+    const action = await seedActionItem(meeting.id, user.id, {
+      task: "To discard",
+    });
+    await setAuthCookie(user.id);
+
+    const { DELETE } = await import("../app/api/action-items/[id]/route");
+    const response = await DELETE(
+      new Request(`http://localhost/api/action-items/${action.id}`, {
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ id: action.id }) },
+    );
+    expect(response.status).toBe(200);
+
+    const prisma = await getPrisma();
+    const gone = await prisma.actionItem.findUnique({ where: { id: action.id } });
+    expect(gone).toBeNull();
+  });
+
+  test("PATCH can update task text", async () => {
+    const user = await createTestUser({ email: "patcher@test.com" });
+    const meeting = await seedMeetingNote(user.id);
+    const action = await seedActionItem(meeting.id, user.id, {
+      task: "Old task",
+    });
+    await setAuthCookie(user.id);
+
+    const { PATCH } = await import("../app/api/action-items/[id]/route");
+    const response = await PATCH(
+      new Request(`http://localhost/api/action-items/${action.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ task: "New task" }),
+      }),
+      { params: Promise.resolve({ id: action.id }) },
+    );
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.actionItem.task).toBe("New task");
+  });
+
   test("org member can update action item in their org", async () => {
     const admin = await createTestUser({ email: "admin@test.com" });
     const member = await createTestUser({ email: "member@test.com" });

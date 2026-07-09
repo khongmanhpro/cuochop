@@ -280,4 +280,268 @@ textarea {
     font-weight: 600;
     line-height: 1.50;
   }
+
+  /* ── App shell & page layout (internal product UX) ── */
+
+  .app-shell {
+    min-height: 100vh;
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    border-bottom: 1px solid var(--color-hairline-soft);
+    background: color-mix(in srgb, var(--color-canvas) 92%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .app-header-inner {
+    margin-inline: auto;
+    display: flex;
+    max-width: 1280px;
+    height: 56px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-inline: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .app-header-inner {
+      padding-inline: 24px;
+    }
+  }
+
+  .app-nav-row {
+    border-top: 1px solid var(--color-hairline-soft);
+    background: var(--color-canvas);
+  }
+
+  .app-nav-inner {
+    margin-inline: auto;
+    display: flex;
+    max-width: 1280px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-inline: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-nav-inner::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .app-nav-inner {
+      padding-inline: 16px;
+    }
+  }
+
+  .page-container {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 1280px;
+    padding: 24px 16px 48px;
+  }
+
+  @media (min-width: 640px) {
+    .page-container {
+      padding: 32px 24px 64px;
+    }
+  }
+
+  .page-header {
+    margin-bottom: 24px;
+  }
+
+  .page-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-brand-coral);
+  }
+
+  .page-title {
+    margin-top: 8px;
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.5px;
+    color: var(--color-ink);
+  }
+
+  .page-description {
+    margin-top: 8px;
+    max-width: 42rem;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--color-slate);
+  }
+
+  .card-surface {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-hairline);
+    background: var(--color-canvas);
+  }
+
+  .card-surface-muted {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-hairline);
+    background: var(--color-surface);
+  }
+
+  .field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .field-input {
+    margin-top: 6px;
+    height: 40px;
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-hairline);
+    background: var(--color-canvas);
+    padding: 0 12px;
+    font-size: 14px;
+    color: var(--color-ink);
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .field-input:hover {
+    border-color: var(--color-stone);
+  }
+
+  .field-input:focus {
+    border-color: var(--color-brand-blue-deep);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-blue-deep) 18%, transparent);
+  }
+
+  .field-textarea {
+    margin-top: 6px;
+    width: 100%;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-hairline);
+    background: var(--color-canvas);
+    padding: 10px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-ink);
+    outline: none;
+    resize: vertical;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .field-textarea:focus {
+    border-color: var(--color-brand-blue-deep);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-blue-deep) 18%, transparent);
+  }
+
+  .user-chip {
+    display: none;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-hairline);
+    background: var(--color-surface);
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-slate);
+  }
+
+  @media (min-width: 768px) {
+    .user-chip {
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+
+  .link-quiet {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-stone);
+    transition: color 150ms ease;
+  }
+
+  .link-quiet:hover {
+    color: var(--color-ink);
+  }
+
+  /* Auth card */
+  .auth-shell {
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface);
+    padding: 24px 16px;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 400px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-hairline);
+    background: var(--color-canvas);
+    padding: 32px 28px;
+    box-shadow: 0 1px 2px rgb(10 10 10 / 4%), 0 8px 24px rgb(10 10 10 / 4%);
+  }
+
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-block: 24px;
+  }
+
+  .auth-divider::before,
+  .auth-divider::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: var(--color-hairline);
+  }
+
+  .auth-divider span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-stone);
+  }
+
+  /* Tighten segmented tabs for denser product chrome */
+  .segmented-tab {
+    padding: 12px 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 640px) {
+    .segmented-tab {
+      padding: 14px 18px;
+    }
+  }
+
+  /* Generator inside dashboard should not force full viewport height */
+  .embedded-panel {
+    min-height: 0;
+  }
+
+  .embedded-panel > section {
+    box-shadow: none;
+  }
 }

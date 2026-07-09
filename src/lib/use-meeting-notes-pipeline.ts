@@ -8,7 +8,10 @@ import type {
   VietnameseMeetingNotes,
   VietnameseMeetingTranscript,
 } from "@/lib/gemini";
-import { generateNotesForTranscript } from "@/lib/notes-client";
+import {
+  generateNotesForTranscript,
+  type GeneratedActionItemRef,
+} from "@/lib/notes-client";
 import { transcribeUploadedFile } from "@/lib/transcribe-client";
 import {
   type CompleteUploadResponse,
@@ -29,10 +32,10 @@ export type ErrorState = {
 };
 
 export const statusSteps: Array<{ id: ProcessStage; label: string }> = [
-  { id: "uploading", label: "Uploading" },
-  { id: "transcribing", label: "Transcribing" },
-  { id: "generating", label: "Generating notes" },
-  { id: "done", label: "Done" },
+  { id: "uploading", label: "Đang tải lên" },
+  { id: "transcribing", label: "Đang phiên âm" },
+  { id: "generating", label: "Đang tạo notes" },
+  { id: "done", label: "Xong" },
 ];
 
 export const allowedExtensions = ".mp3,.mp4,.wav,.m4a";
@@ -56,18 +59,18 @@ export function getClientFileErrorCode(file: File) {
 
 export function getButtonText(stage: ProcessStage) {
   if (stage === "uploading") {
-    return "Uploading...";
+    return "Đang tải lên…";
   }
 
   if (stage === "transcribing") {
-    return "Transcribing...";
+    return "Đang phiên âm…";
   }
 
   if (stage === "generating") {
-    return "Generating notes...";
+    return "Đang tạo notes…";
   }
 
-  return "Generate Meeting Notes";
+  return "Tạo meeting notes";
 }
 
 export function getStepState(current: ProcessStage, step: ProcessStage) {
@@ -159,6 +162,8 @@ export type PipelineState = {
   transcript: VietnameseMeetingTranscript | null;
   notes: VietnameseMeetingNotes | null;
   markdown: string;
+  meetingNoteId: string | null;
+  generatedActionItems: GeneratedActionItemRef[];
   isDragging: boolean;
   copied: boolean;
   copiedFollowUp: boolean;
@@ -206,6 +211,10 @@ export function useMeetingNotesPipeline(
     useState<VietnameseMeetingTranscript | null>(null);
   const [notes, setNotes] = useState<VietnameseMeetingNotes | null>(null);
   const [markdown, setMarkdown] = useState("");
+  const [meetingNoteId, setMeetingNoteId] = useState<string | null>(null);
+  const [generatedActionItems, setGeneratedActionItems] = useState<
+    GeneratedActionItemRef[]
+  >([]);
   const [isDragging, setIsDragging] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedFollowUp, setCopiedFollowUp] = useState(false);
@@ -219,6 +228,8 @@ export function useMeetingNotesPipeline(
     setTranscript(null);
     setNotes(null);
     setMarkdown("");
+    setMeetingNoteId(null);
+    setGeneratedActionItems([]);
     setNotesError(null);
     setExportError(null);
     setIsExportingDocx(false);
@@ -305,6 +316,8 @@ export function useMeetingNotesPipeline(
         });
         setNotes(notesResult.notes);
         setMarkdown(notesResult.markdown);
+        setMeetingNoteId(notesResult.meetingNoteId ?? null);
+        setGeneratedActionItems(notesResult.actionItems ?? []);
       } catch (error) {
         setNotesError({
           message: getErrorMessage(
@@ -439,6 +452,8 @@ export function useMeetingNotesPipeline(
     transcript,
     notes,
     markdown,
+    meetingNoteId,
+    generatedActionItems,
     isDragging,
     copied,
     copiedFollowUp,

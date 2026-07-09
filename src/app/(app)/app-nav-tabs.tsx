@@ -6,22 +6,18 @@ import { usePathname } from "next/navigation";
 type TabItem = {
   href: string;
   label: string;
-  /** Prefix match: tab is active when pathname starts with this prefix. */
   matchPrefix?: boolean;
 };
 
 const TABS: readonly TabItem[] = [
-  { href: "/app", label: "New Meeting" },
-  { href: "/actions", label: "Actions", matchPrefix: true },
-  { href: "/history", label: "History", matchPrefix: true },
-  { href: "/settings/account", label: "Account", matchPrefix: true },
+  { href: "/app", label: "Tổng quan" },
+  { href: "/actions", label: "Công việc", matchPrefix: true },
+  { href: "/history", label: "Lịch sử", matchPrefix: true },
+  { href: "/settings/account", label: "Tài khoản", matchPrefix: true },
 ] as const;
 
 function isActive(pathname: string, tab: TabItem): boolean {
   if (tab.matchPrefix) {
-    // /settings/account should match any /settings/* route EXCEPT /settings/team
-    // and /settings/audit which are handled separately below. We treat
-    // /settings/account, /settings/team, /settings/audit as distinct tabs.
     if (tab.href === "/settings/account") {
       return (
         pathname.startsWith("/settings/account") ||
@@ -45,7 +41,7 @@ export function AppNavTabs({
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1">
+    <nav className="flex min-w-0 items-stretch gap-0" aria-label="Điều hướng chính">
       {TABS.map((tab) => (
         <Link
           key={tab.href}
@@ -60,7 +56,7 @@ export function AppNavTabs({
           href="/settings/team"
           className={`segmented-tab${pathname.startsWith("/settings/team") ? " segmented-tab-active" : ""}`}
         >
-          Team
+          Nhóm
         </Link>
       ) : null}
       {showAudit ? (

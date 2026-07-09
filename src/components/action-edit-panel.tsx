@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   ACTION_ITEM_PRIORITIES,
+  toDateInputValue,
   type ActionItemPriority,
   type ActionItemStatus,
 } from "@/lib/action-items";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/actions-board-helpers";
 
 export type ActionDraft = {
+  task: string;
   ownerId: string;
   deadline: string;
   priority: string;
@@ -44,11 +46,22 @@ export function ActionEditPanel({
   onSave: (payload: ActionItemPatch) => void;
   onCancel: () => void;
 }) {
-  const [draft, setDraft] = useState(initialDraft);
+  const [draft, setDraft] = useState({
+    ...initialDraft,
+    task: initialDraft.task || task,
+  });
+  const dateValue = toDateInputValue(draft.deadline);
 
   return (
     <>
-      <td className="px-4 py-3 font-medium leading-6 text-ink">{task}</td>
+      <td className="px-4 py-3">
+        <input
+          className={controlClass}
+          value={draft.task}
+          onChange={(event) => setDraft({ ...draft, task: event.target.value })}
+          aria-label="Nội dung việc"
+        />
+      </td>
       <td className="px-4 py-3">
         <OwnerSelect
           value={draft.ownerId}
@@ -58,10 +71,17 @@ export function ActionEditPanel({
       </td>
       <td className="px-4 py-3">
         <input
+          type="date"
           className={controlClass}
-          value={draft.deadline}
-          onChange={(event) => setDraft({ ...draft, deadline: event.target.value })}
+          value={dateValue}
+          onChange={(event) =>
+            setDraft({ ...draft, deadline: event.target.value })
+          }
+          aria-label="Deadline"
         />
+        {!dateValue && draft.deadline ? (
+          <p className="mt-1 text-[11px] text-steel">Gốc: {draft.deadline}</p>
+        ) : null}
       </td>
       <td className="px-4 py-3">
         <select
@@ -100,6 +120,7 @@ export function ActionEditPanel({
             disabled={isPending}
             onClick={() =>
               onSave({
+                task: draft.task.trim(),
                 ownerId: draft.ownerId || null,
                 deadline: draft.deadline,
                 priority: draft.priority as ActionItemPriority,
@@ -108,10 +129,10 @@ export function ActionEditPanel({
               })
             }
           >
-            Save
+            Lưu
           </button>
           <button type="button" className={secondaryButtonClass} onClick={onCancel}>
-            Cancel
+            Hủy
           </button>
         </div>
       </td>

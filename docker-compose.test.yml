@@ -1,0 +1,33 @@
+# Run unit/integration tests in Docker (matches production Node 22 + pnpm).
+# Usage:
+#   docker compose -f docker-compose.test.yml run --rm test
+#   docker compose -f docker-compose.test.yml run --rm test pnpm test src/lib/meeting-access.test.ts
+#
+# Rebuild app image after feature work:
+#   docker compose up --build -d
+
+services:
+  test:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+      - cuochop_test_node_modules:/app/node_modules
+    environment:
+      # Isolated DB for tests — harness also overrides per suite
+      DATABASE_URL: file:/tmp/cuochop-docker-test.db
+      SESSION_SECRET: test-session-secret-at-least-32-characters-long
+      GEMINI_API_KEY: test-gemini-key
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      CI: "true"
+    command: >
+      sh -c "apt-get update -qq
+      && apt-get install -y -qq python3 make g++ > /dev/null
+      && corepack enable
+      && corepack prepare pnpm@10.32.1 --activate
+      && pnpm install --frozen-lockfile
+      && pnpm exec prisma generate
+      && pnpm test"
+
+volumes:
+  cuochop_test_node_modules:

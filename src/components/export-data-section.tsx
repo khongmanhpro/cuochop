@@ -4,14 +4,15 @@ import { useCallback, useRef, useState } from "react";
 
 export function ExportDataSection() {
   return (
-    <section className="rounded-[18px] border border-hairline bg-canvas p-5">
-      <h2 className="text-lg font-semibold text-ink">Backup & Export</h2>
-      <p className="mt-1 text-sm text-steel">
-        Xuất toàn bộ dữ liệu cá nhân để sao lưu hoặc dùng ngoài app.
+    <section className="rounded-xl border border-hairline bg-canvas p-6 sm:p-8">
+      <h2 className="text-[24px] font-semibold text-ink">Backup & Export</h2>
+      <p className="mt-2 text-[15px] leading-[1.50] text-slate">
+        Tải toàn bộ meeting, action và decision về máy. Nên export JSON định kỳ
+        (hàng tuần) nếu bạn phụ thuộc app cho công việc.
       </p>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <ExportButton format="json" label="Export JSON" />
-        <ExportButton format="markdown" label="Export Markdown" />
+      <div className="mt-6 flex flex-wrap gap-3">
+        <ExportButton format="json" label="Tải backup JSON" />
+        <ExportButton format="markdown" label="Tải Markdown" />
         <ImportButton />
       </div>
     </section>
@@ -54,7 +55,7 @@ function ExportButton({ format, label }: { format: string; label: string }) {
       disabled={loading}
       className="inline-flex h-10 items-center gap-2 rounded-full border border-hairline bg-canvas px-5 text-sm font-semibold text-ink transition hover:border-primary hover:text-primary disabled:opacity-50"
     >
-      {loading ? "Đang export..." : label}
+      {loading ? "Đang tải…" : label}
     </button>
   );
 }

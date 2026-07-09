@@ -57,6 +57,7 @@ export type Filters = {
 };
 
 export type ActionItemPatch = Partial<{
+  task: string;
   ownerId: string | null;
   deadline: string;
   priority: ActionItemPriority;
@@ -75,9 +76,9 @@ export const initialFilters: Filters = {
 };
 
 export const statusLabels: Record<ActionItemStatus, string> = {
-  todo: "Todo",
-  doing: "Doing",
-  done: "Done",
+  todo: "Cần làm",
+  doing: "Đang làm",
+  done: "Xong",
   blocked: "Blocked",
 };
 
@@ -218,7 +219,7 @@ export function formatActionBoardBrief(
 }
 
 export const controlClass =
-  "mt-1 h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-sm text-ink outline-none transition focus:border-brand-blue-deep focus:outline-none";
+  "field-input mt-1";
 
 export const primaryButtonClass =
   "rounded-full bg-primary px-3 py-2 text-xs font-semibold text-on-dark transition hover:bg-charcoal disabled:bg-hairline disabled:text-steel";

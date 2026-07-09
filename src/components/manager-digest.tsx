@@ -18,13 +18,18 @@ export function ManagerDigest({
   return (
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <DigestCard
-        label={isTeamContext ? "Team open actions" : "Open actions"}
+        label={isTeamContext ? "Việc nhóm đang mở" : "Đang mở"}
         value={String(digest.open)}
-        helper="Việc còn phải xử lý"
+        helper="Cần xử lý"
       />
-      <DigestCard label="Blocked" value={String(digest.blocked)} helper="Cần gỡ tắc" tone="dark" />
       <DigestCard
-        label="Chưa có owner"
+        label="Đang kẹt"
+        value={String(digest.blocked)}
+        helper="Cần gỡ tắc"
+        tone="warn"
+      />
+      <DigestCard
+        label="Chưa owner"
         value={String(digest.withoutOwner)}
         helper="Cần phân công"
       />
@@ -32,12 +37,13 @@ export function ManagerDigest({
         label="Quá hạn"
         value={String(digest.clearlyOverdue)}
         helper="Deadline đã qua"
+        tone="danger"
       />
       <DigestCard
-        label="Done"
+        label="Hoàn tất"
         value={`${Math.round(digest.doneRatio * 100)}%`}
-        helper={`${digest.done}/${digest.total || 0} hoàn tất`}
-        tone="blue"
+        helper={`${digest.done}/${digest.total || 0} việc`}
+        tone="success"
       />
     </section>
   );
@@ -47,24 +53,29 @@ function DigestCard({
   label,
   value,
   helper,
-  tone = "light",
+  tone = "default",
 }: {
   label: string;
   value: string;
   helper: string;
-  tone?: "light" | "blue" | "dark";
+  tone?: "default" | "success" | "warn" | "danger";
 }) {
-  const toneClasses = {
-    light: "border-hairline bg-canvas text-ink",
-    blue: "border-brand-blue-deep bg-canvas text-brand-blue-deep",
-    dark: "border-footer-bg bg-footer-bg text-on-dark",
-  };
+  const toneClass = {
+    default: "card-surface text-ink",
+    success: "card-surface text-success-text",
+    warn: "border border-hairline bg-canvas text-ink",
+    danger: "border border-error/25 bg-error/5 text-error",
+  }[tone];
 
   return (
-    <div className={`rounded-xl border p-4 ${toneClasses[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-70">{label}</p>
-      <p className="mt-3 text-3xl font-semibold">{value}</p>
-      <p className="mt-1 text-xs opacity-70">{helper}</p>
+    <div className={`rounded-xl p-4 ${toneClass}`}>
+      <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-steel">
+        {label}
+      </p>
+      <p className="mt-2 text-[28px] font-semibold leading-none tracking-[-0.5px]">
+        {value}
+      </p>
+      <p className="mt-2 text-[12px] text-steel">{helper}</p>
     </div>
   );
 }

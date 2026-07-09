@@ -29,15 +29,22 @@ export default async function AppLayout({
     }),
   ]);
 
+  const displayName = user.name || user.email;
+
   return (
-    <div className="min-h-screen bg-surface">
-      {/* Top nav — sticky white bar, hairline-soft bottom border */}
-      <header className="sticky top-0 z-30 border-b border-hairline-soft bg-canvas">
-        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
-          <Link href="/" className="shrink-0">
-            <Logo width={160} height={42} />
-          </Link>
-          <div className="flex items-center gap-3">
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-header-inner">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link href="/app" className="shrink-0" aria-label="Về workspace">
+              <Logo width={140} height={36} />
+            </Link>
+            <span className="hidden text-[12px] font-medium text-stone sm:inline">
+              Workspace
+            </span>
+          </div>
+
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <GlobalSearch />
             <NotificationBell
               initialUnreadCount={unreadCount}
@@ -51,23 +58,19 @@ export default async function AppLayout({
                 createdAt: notification.createdAt.toISOString(),
               }))}
             />
-            <span className="text-[14px] text-slate">
-              {user.name || user.email}
+            <span className="user-chip" title={displayName}>
+              {displayName}
             </span>
             <form action={logout}>
-              <button
-                type="submit"
-                className="text-[14px] text-stone transition-colors hover:text-ink"
-              >
+              <button type="submit" className="link-quiet px-1">
                 Đăng xuất
               </button>
             </form>
           </div>
         </div>
 
-        {/* Sub nav — segmented tabs (underline style) */}
-        <div className="border-t border-hairline-soft bg-canvas">
-          <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-2">
+        <div className="app-nav-row">
+          <div className="app-nav-inner">
             <AppNavTabs
               showTeam={Boolean(activeOrganization)}
               showAudit={
@@ -75,13 +78,14 @@ export default async function AppLayout({
                 activeOrganization?.role === "admin"
               }
             />
-            <div className="flex items-center gap-2">
-              <span className="badge-success">Personal workspace</span>
+            <div className="hidden shrink-0 items-center gap-2 py-2 pr-2 sm:flex">
               {activeOrganization ? (
-                <span className="pill-tab">
+                <span className="pill-tab text-[12px]">
                   {activeOrganization.name}
                 </span>
-              ) : null}
+              ) : (
+                <span className="badge-success text-[12px]">Cá nhân</span>
+              )}
             </div>
           </div>
         </div>

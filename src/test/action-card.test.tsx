@@ -71,7 +71,7 @@ describe("ActionCard — view mode", () => {
     expect(screen.getByText("High")).toBeInTheDocument();
   });
 
-  test("shows Done button when status is todo", () => {
+  test("shows Xong button when status is todo", () => {
     render(
       <table>
         <tbody>
@@ -91,11 +91,11 @@ describe("ActionCard — view mode", () => {
       </table>,
     );
 
-    expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Reopen" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Xong" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Mở lại" })).not.toBeInTheDocument();
   });
 
-  test("shows Reopen button when status is done", () => {
+  test("shows Mở lại button when status is done", () => {
     render(
       <table>
         <tbody>
@@ -115,11 +115,11 @@ describe("ActionCard — view mode", () => {
       </table>,
     );
 
-    expect(screen.getByRole("button", { name: "Reopen" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mở lại" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xong" })).not.toBeInTheDocument();
   });
 
-  test("clicking Done calls onPatch with status done", () => {
+  test("clicking Xong calls onPatch with status done", () => {
     const onPatch = vi.fn();
     render(
       <table>
@@ -140,7 +140,7 @@ describe("ActionCard — view mode", () => {
       </table>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xong" }));
     expect(onPatch).toHaveBeenCalledWith({ status: "done" });
   });
 
@@ -165,7 +165,7 @@ describe("ActionCard — view mode", () => {
       </table>,
     );
 
-    fireEvent.click(screen.getByText("Edit"));
+    fireEvent.click(screen.getByText("Sửa"));
     expect(onEdit).toHaveBeenCalled();
   });
 
@@ -197,7 +197,7 @@ describe("ActionCard — view mode", () => {
 });
 
 describe("ActionCard — edit mode", () => {
-  test("renders Save and Cancel buttons", () => {
+  test("renders Lưu and Hủy buttons", () => {
     render(
       <table>
         <tbody>
@@ -217,11 +217,11 @@ describe("ActionCard — edit mode", () => {
       </table>,
     );
 
-    expect(screen.getByText("Save")).toBeInTheDocument();
-    expect(screen.getByText("Cancel")).toBeInTheDocument();
+    expect(screen.getByText("Lưu")).toBeInTheDocument();
+    expect(screen.getByText("Hủy")).toBeInTheDocument();
   });
 
-  test("clicking Cancel calls onCancel", () => {
+  test("clicking Hủy calls onCancel", () => {
     const onCancel = vi.fn();
     render(
       <table>
@@ -242,11 +242,11 @@ describe("ActionCard — edit mode", () => {
       </table>,
     );
 
-    fireEvent.click(screen.getByText("Cancel"));
+    fireEvent.click(screen.getByText("Hủy"));
     expect(onCancel).toHaveBeenCalled();
   });
 
-  test("clicking Save calls onPatch with draft values", () => {
+  test("clicking Lưu calls onPatch with draft values", () => {
     const onPatch = vi.fn();
     render(
       <table>
@@ -267,9 +267,10 @@ describe("ActionCard — edit mode", () => {
       </table>,
     );
 
-    fireEvent.click(screen.getByText("Save"));
+    fireEvent.click(screen.getByText("Lưu"));
     expect(onPatch).toHaveBeenCalledWith(
       expect.objectContaining({
+        task: "Review PR",
         ownerId: "user-1",
         deadline: "2026-07-15",
         priority: "High",

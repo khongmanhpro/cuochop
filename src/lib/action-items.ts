@@ -31,12 +31,54 @@ export type DecisionCreatePayload = {
 };
 
 export type ActionItemUpdatePayload = Partial<{
+  task: string;
   ownerId: string | null;
   deadline: string;
   priority: ActionItemPriority;
   status: ActionItemStatus;
   notes: string;
 }>;
+
+/** Normalize free-text / VN dates to YYYY-MM-DD when possible; else keep trimmed text. */
+export function normalizeDeadlineInput(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const iso = Date.parse(trimmed);
+  if (!Number.isNaN(iso)) {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+
+  const vn = trimmed.match(/\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b/);
+  if (vn) {
+    const day = Number(vn[1]);
+    const month = Number(vn[2]);
+    const yearText = vn[3];
+    const year = yearText
+      ? Number(yearText.length === 2 ? `20${yearText}` : yearText)
+      : new Date().getFullYear();
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${year}-${pad2(month)}-${pad2(day)}`;
+    }
+  }
+
+  return trimmed;
+}
+
+/** Value for <input type="date">; empty if not a clear calendar date. */
+export function toDateInputValue(deadline: string): string {
+  const normalized = normalizeDeadlineInput(deadline);
+  return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : "";
+}
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
 
 export type DigestActionItem = {
   status: string;
@@ -150,12 +192,22 @@ export function normalizeActionItemUpdate(
 ): ActionItemUpdatePayload {
   const update: ActionItemUpdatePayload = {};
 
+  if ("task" in value) {
+    const task = normalizeTextField(value.task, "task");
+    if (!task || task === fallback) {
+      throw new Error("Invalid action item task.");
+    }
+    update.task = task;
+  }
+
   if ("ownerId" in value) {
     update.ownerId = normalizeNullableId(value.ownerId, "ownerId");
   }
 
   if ("deadline" in value) {
-    update.deadline = normalizeTextField(value.deadline, "deadline");
+    update.deadline = normalizeDeadlineInput(
+      normalizeTextField(value.deadline, "deadline"),
+    );
   }
 
   if ("notes" in value) {
@@ -177,6 +229,60 @@ export function normalizeActionItemUpdate(
   }
 
   return update;
+}
+
+export function normalizeActionItemCreate(
+  value: Record<string, unknown>,
+): {
+  task: string;
+  deadline: string;
+  priority: ActionItemPriority;
+  status: ActionItemStatus;
+  notes: string;
+  ownerId: string | null;
+  meetingNoteId: string | null;
+} {
+  const task = normalizeTextField(value.task, "task");
+  if (!task || task === fallback) {
+    throw new Error("Invalid action item task.");
+  }
+
+  let priority: ActionItemPriority = "Medium";
+  if ("priority" in value && value.priority != null && value.priority !== "") {
+    if (!isActionItemPriority(value.priority)) {
+      throw new Error("Invalid action item priority.");
+    }
+    priority = value.priority;
+  }
+
+  let status: ActionItemStatus = "todo";
+  if ("status" in value && value.status != null && value.status !== "") {
+    if (!isActionItemStatus(value.status)) {
+      throw new Error("Invalid action item status.");
+    }
+    status = value.status;
+  }
+
+  return {
+    task,
+    deadline: normalizeDeadlineInput(
+      typeof value.deadline === "string" ? value.deadline : "",
+    ),
+    priority,
+    status,
+    notes:
+      "notes" in value
+        ? normalizeTextField(value.notes, "notes")
+        : "",
+    ownerId:
+      "ownerId" in value
+        ? normalizeNullableId(value.ownerId, "ownerId")
+        : null,
+    meetingNoteId:
+      "meetingNoteId" in value
+        ? normalizeNullableId(value.meetingNoteId, "meetingNoteId")
+        : null,
+  };
 }
 
 export function computeManagerDigest(
